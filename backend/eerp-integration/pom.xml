@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-integration</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-integration</name>
+    <description>EERP 集成模块：附件、存储、API 日志抽象基类</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+        <!-- 工作流回调需回写单据 pact_state，复用 GenericBillService.operate -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-bos</artifactId>
+        </dependency>
+
+        <!-- MinIO 存储适配器依赖 -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

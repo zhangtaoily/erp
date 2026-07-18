@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-plugin</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-plugin</name>
+    <description>EERP 插件模块：三基类、上下文、插件管理器</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+
+        <!-- 元数据模块：MetaFormPlugin/MetaPluginParam 实体与 ExprEvaluator 表达式引擎 -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-meta</artifactId>
+        </dependency>
+
+        <!-- Spring 上下文（@Service/@Autowired/@Configuration） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

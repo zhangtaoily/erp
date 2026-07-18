@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-bos</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-bos</name>
+    <description>EERP 业务对象运行时内核（表单渲染 + 单据操作 + 列表查询 + 编码生成 + 变更日志）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-meta</artifactId>
+        </dependency>
+
+        <!-- 插件模块：A5 操作编排服务调用 PluginManager 执行 6 阶段流水线 -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-plugin</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

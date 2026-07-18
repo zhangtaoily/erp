@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-sys-ext</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-sys-ext</name>
+    <description>EERP 系统管理扩展（参数/公告/备份/任务/字典/导入）</description>
+
+    <dependencies>
+        <!-- 内部模块 -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-bos</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-meta</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

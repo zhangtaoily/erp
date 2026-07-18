@@ -1,0 +1,293 @@
+<template>
+  <!-- ============ 控件映射（PRD 01.3.5 控件类型映射表，GAP-D02-001 / RISK-D02-001）============ -->
+  <!-- text/textarea → el-input -->
+  <el-input
+    v-if="field.ctrl_type === 'text'"
+    :model-value="modelValue"
+    :placeholder="field.placeholder || `请输入${field.field_name}`"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: string) => emit('update:modelValue', v)"
+  />
+  <el-input
+    v-else-if="field.ctrl_type === 'textarea'"
+    :model-value="modelValue"
+    type="textarea"
+    :placeholder="field.placeholder || `请输入${field.field_name}`"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: string) => emit('update:modelValue', v)"
+  />
+
+  <!-- number → el-input-number -->
+  <el-input-number
+    v-else-if="field.ctrl_type === 'number'"
+    :model-value="modelValue"
+    :disabled="disabled"
+    :precision="field.data_precision"
+    :size="size"
+    controls-position="right"
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  />
+
+  <!-- date → el-date-picker -->
+  <el-date-picker
+    v-else-if="field.ctrl_type === 'date'"
+    :model-value="modelValue"
+    type="date"
+    value-format="YYYY-MM-DD"
+    :placeholder="field.placeholder || '选择日期'"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  />
+
+  <!-- datetime → el-date-picker type=datetime -->
+  <el-date-picker
+    v-else-if="field.ctrl_type === 'datetime'"
+    :model-value="modelValue"
+    type="datetime"
+    value-format="YYYY-MM-DD HH:mm:ss"
+    :placeholder="field.placeholder || '选择日期时间'"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  />
+
+  <!-- select → el-select（枚举下拉）-->
+  <el-select
+    v-else-if="field.ctrl_type === 'select'"
+    :model-value="modelValue"
+    :placeholder="field.placeholder || '请选择'"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  >
+    <el-option v-for="opt in getEnumOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
+  </el-select>
+
+  <!-- ref → BoPicker/el-select 下拉（基础资料引用，GAP-D02-001）-->
+  <el-select
+    v-else-if="field.ctrl_type === 'ref'"
+    :model-value="modelValue"
+    :placeholder="field.placeholder || `请选择${field.field_name}`"
+    :disabled="disabled"
+    :size="size"
+    filterable
+    clearable
+    :loading="refLoading"
+    @visible-change="onRefVisibleChange"
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  >
+    <el-option
+      v-for="opt in refOptions"
+      :key="opt.value"
+      :label="opt.label"
+      :value="opt.value"
+    />
+  </el-select>
+
+  <!-- amount → el-input-number + 币别后缀（GAP-D02-001）-->
+  <div v-else-if="field.ctrl_type === 'amount'" class="amount-control">
+    <el-input-number
+      :model-value="modelValue"
+      :disabled="disabled"
+      :precision="field.data_scale ?? 2"
+      :size="size"
+      controls-position="right"
+      @update:model-value="(v: any) => emit('update:modelValue', v)"
+    />
+    <span class="currency-suffix">{{ currencySymbol }}</span>
+  </div>
+
+  <!-- qty → el-input-number + 单位后缀（GAP-D02-001）-->
+  <div v-else-if="field.ctrl_type === 'qty'" class="qty-control">
+    <el-input-number
+      :model-value="modelValue"
+      :disabled="disabled"
+      :precision="field.data_scale ?? 4"
+      :size="size"
+      controls-position="right"
+      @update:model-value="(v: any) => emit('update:modelValue', v)"
+    />
+    <span class="unit-suffix">{{ unitText }}</span>
+  </div>
+
+  <!-- checkbox → el-checkbox -->
+  <el-checkbox
+    v-else-if="field.ctrl_type === 'checkbox'"
+    :model-value="!!modelValue"
+    :disabled="disabled"
+    :size="size"
+    @update:model-value="(v: any) => emit('update:modelValue', v)"
+  />
+
+  <!-- attachment → AttachmentUpload 组件（GAP-D02-001，简化为上传按钮 + 文件计数）-->
+  <div v-else-if="field.ctrl_type === 'attachment'" class="attachment-control">
+    <el-upload
+      :show-file-list="false"
+      :auto-upload="true"
+      :http-request="(opts: any) => mockUpload(opts, field)"
+      multiple
+    >
+      <el-button :size="size" :disabled="disabled" type="primary" plain>
+        <el-icon><Upload /></el-icon>上传附件
+      </el-button>
+    </el-upload>
+    <span v-if="attachmentList.length" class="att-count">{{ attachmentList.length }} 个文件</span>
+  </div>
+
+  <!-- 兜底：el-input -->
+  <el-input
+    v-else
+    :model-value="modelValue"
+    :placeholder="field.placeholder || `请输入${field.field_name}`"
+    :disabled="disabled"
+    :size="size"
+    clearable
+    @update:model-value="(v: string) => emit('update:modelValue', v)"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Upload } from '@element-plus/icons-vue'
+import { PACT_STATE_LIST } from '@/utils/enum'
+import { boApi } from '@/api/bo'
+import type { FormField, BusinessObject } from '@/types/bo'
+
+const props = withDefaults(defineProps<{
+  field: FormField
+  modelValue: any
+  disabled?: boolean
+  size?: 'small' | 'default' | 'large'
+  // 可选：从外层 form 传入币别 / 单位值（用于 amount/qty 后缀联动）
+  currency?: string
+  unit?: string
+}>(), {
+  disabled: false,
+  size: 'default',
+  currency: '',
+  unit: ''
+})
+
+const emit = defineEmits<{
+  'update:modelValue': [value: any]
+}>()
+
+// ============ 枚举选项（select 控件）============
+function getEnumOptions(field: FormField) {
+  if (field.enum_code === 'PACT_STATE') return PACT_STATE_LIST
+  // 简化：未识别的枚举返回示例选项
+  return [
+    { value: 'kg', label: '公斤' },
+    { value: '筒', label: '筒' },
+    { value: '箱', label: '箱' }
+  ]
+}
+
+// ============ 基础资料引用下拉（ref 控件，GAP-D02-001 / RISK-D02-001）============
+// 复用 BoPicker 同源数据：调 boApi.list 加载 ref_bo_code 对应业务对象数据
+const refOptions = ref<{ value: string; label: string }[]>([])
+const refLoading = ref(false)
+const refLoaded = ref(false)
+
+async function loadRefOptions() {
+  if (!props.field.ref_bo_code) {
+    // 未配置 ref_bo_code 时退化为通用选项（演示）
+    refOptions.value = [
+      { value: 'DEMO001', label: '示例记录 001' },
+      { value: 'DEMO002', label: '示例记录 002' }
+    ]
+    refLoaded.value = true
+    return
+  }
+  refLoading.value = true
+  try {
+    const res: any = await boApi.list({ pageSize: 200 })
+    const allList: BusinessObject[] = res?.list || res || []
+    // 尝试匹配：若 ref_bo_code 在 BO 列表中（基础资料 BO），直接以 BO 自身记录为选项
+    // 简化：原型阶段仅基于已加载 BO 列表做演示，真实实现应加载 ref_bo_code 对应的实例数据
+    const target = allList.find(b => b.bo_code === props.field.ref_bo_code)
+    if (target) {
+      // 演示：用 BO 自身作为选项（真实场景应请求 /bo/{ref_bo_code}/instances）
+      refOptions.value = [
+        { value: target.bo_code, label: target.bo_name }
+      ]
+    } else {
+      refOptions.value = allList.map(b => ({ value: b.bo_code, label: b.bo_name }))
+    }
+    refLoaded.value = true
+  } catch {
+    refOptions.value = []
+  } finally {
+    refLoading.value = false
+  }
+}
+
+function onRefVisibleChange(visible: boolean) {
+  if (visible && !refLoaded.value) loadRefOptions()
+}
+
+// ref_bo_code 变更时重新加载
+watch(() => props.field.ref_bo_code, () => {
+  refLoaded.value = false
+  refOptions.value = []
+})
+
+// ============ amount 币别后缀（GAP-D02-001）============
+const currencySymbol = computed(() => {
+  const c = props.currency || props.field.default_value || ''
+  // 简化币别映射
+  const map: Record<string, string> = {
+    CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥'
+  }
+  return map[c] || (c ? c + ' ' : '¥')
+})
+
+// ============ qty 单位后缀（GAP-D02-001）============
+const unitText = computed(() => {
+  return props.unit || ''
+})
+
+// ============ attachment 上传（简化 mock，GAP-D02-001）============
+const attachmentList = ref<{ name: string; size: number }[]>([])
+
+async function mockUpload(options: any, _field: FormField) {
+  // 简化：原型阶段直接 push 文件信息，不调真实 API
+  attachmentList.value.push({
+    name: options.file?.name || 'file',
+    size: options.file?.size || 0
+  })
+  ElMessage.success(`${options.file?.name || '文件'} 上传成功`)
+}
+</script>
+
+<style scoped lang="scss">
+.attachment-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  .att-count {
+    color: #1564ff;
+    font-size: 12px;
+  }
+}
+.amount-control, .qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.currency-suffix, .unit-suffix {
+  color: #909399;
+  font-size: 12px;
+  white-space: nowrap;
+}
+</style>

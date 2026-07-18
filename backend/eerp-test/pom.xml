@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-test</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-test</name>
+    <description>EERP 测试模块（单元测试）</description>
+
+    <dependencies>
+        <!-- 内部模块 -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-meta</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-bos</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-integration</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-plugin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-master</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-scm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-mfg</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-fin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-tax</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-sys-ext</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-msg</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Test（含 JUnit5 / Mockito / AssertJ / Hamcrest） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- H2 内存数据库（用于需要 JDBC 的场景） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

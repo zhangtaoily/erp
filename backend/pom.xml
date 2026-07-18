@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.eerp</groupId>
+    <artifactId>eerp-parent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>eerp-parent</name>
+    <description>EERP Backend Parent</description>
+
+    <modules>
+        <module>eerp-common</module>
+        <module>eerp-meta</module>
+        <module>eerp-plugin</module>
+        <module>eerp-bos</module>
+        <module>eerp-integration</module>
+        <module>eerp-master</module>
+        <module>eerp-scm</module>
+        <module>eerp-mfg</module>
+        <module>eerp-fin</module>
+        <module>eerp-tax</module>
+        <module>eerp-sys-ext</module>
+        <module>eerp-msg</module>
+        <module>eerp-api</module>
+        <module>eerp-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <spring-boot.version>3.2.5</spring-boot.version>
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <mysql-connector.version>8.0.33</mysql-connector.version>
+        <jjwt.version>0.12.5</jjwt.version>
+        <hutool.version>5.8.27</hutool.version>
+        <lombok.version>1.18.30</lombok.version>
+        <minio.version>8.5.9</minio.version>
+        <json-bigint.version>1.0.0</json-bigint.version>
+        <antlr4.version>4.13.1</antlr4.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 内部模块 -->
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-meta</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-bos</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-integration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-master</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-scm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-mfg</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-fin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-tax</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-sys-ext</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.eerp</groupId>
+                <artifactId>eerp-msg</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- MyBatis-Plus (Spring Boot 3) -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <!-- MySQL -->
+            <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>${mysql-connector.version}</version>
+            </dependency>
+
+            <!-- JJWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <!-- Hutool -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <!-- MinIO -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+
+            <!-- ANTLR4 Runtime（表达式引擎运行时依赖；当前采用手写递归下降解析器，
+                 antlr4-runtime 面向未来切换至 ANTLR4 代码生成方案时启用） -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>UTF-8</encoding>
+                        <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <!-- ANTLR4 Maven Plugin 版本管理（声明于 pluginManagement，不在子模块激活；
+                     当前表达式引擎使用手写递归下降解析器，故未在 eerp-meta/build 中激活此插件，
+                     避免与手写 ExprLexer/ExprParser 生成代码冲突。未来切换 ANTLR4 时，
+                     在 eerp-meta/pom.xml 的 build/plugins 中激活并配置 sourceDirectory=
+                     src/main/resources/grammar、outputDirectory=${project.build.directory}/
+                     generated-sources/antlr4、listener=false、visitor=true 即可） -->
+                <plugin>
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr4-maven-plugin</artifactId>
+                    <version>${antlr4.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

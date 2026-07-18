@@ -1,0 +1,52 @@
+// Element Plus 主题覆盖 - 金蝶风格
+:root {
+  --el-color-primary: #1564ff;
+  --el-color-primary-light-3: #5b8eff;
+  --el-color-primary-light-5: #8aaaff;
+  --el-color-primary-light-7: #b8d4ff;
+  --el-color-primary-light-8: #d2e2ff;
+  --el-color-primary-light-9: #e9f1ff;
+  --el-color-primary-dark-2: #0f4ecc;
+  --el-font-size-base: 13px;
+  --el-border-radius-base: 3px;
+}
+
+// 顶栏
+.app-header {
+  height: 48px;
+  background: linear-gradient(90deg, #1564ff 0%, #0f4ecc 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+
+  .logo {
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: 24px;
+    white-space: nowrap;
+  }
+}
+
+// 侧边栏
+.app-sidebar {
+  background: #fff;
+  border-right: 1px solid #e4e7ed;
+
+  .el-menu {
+    border-right: none;
+  }
+}
+
+// tags 标签页
+.app-tags {
+  height: 34px;
+  background: #fff;
+  border-bottom: 1px solid #e4e7ed;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}

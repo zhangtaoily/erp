@@ -1,0 +1,77 @@
+@use './theme.scss';
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  font-size: 13px;
+  color: #303133;
+  background: #f0f2f5;
+}
+
+// 滚动条
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+}
+::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+
+// 通用工具类
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.ml-8 { margin-left: 8px; }
+.mr-8 { margin-right: 8px; }
+.p-16 { padding: 16px; }
+.full-height { height: 100%; }
+
+// 状态标签色
+.state-tag-0 { color: #909399; }
+.state-tag-1 { color: #1564ff; }
+.state-tag-2 { color: #faad14; }
+.state-tag-3 { color: #52c41a; }
+.state-tag-4 { color: #f5222d; }
+
+// 卡片容器
+.page-container {
+  height: 100%;
+  padding: 12px;
+  overflow: auto;
+}
+
+.panel-card {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+// 表格紧凑模式
+.el-table--small {
+  font-size: 12px;
+}
+
+// Element Plus 紧凑密度
+.el-button--small {
+  height: 28px;
+  padding: 0 12px;
+}

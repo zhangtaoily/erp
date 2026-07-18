@@ -1,0 +1,57 @@
+server:
+  port: 0
+  servlet:
+    context-path: /
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:eerp_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;IGNORECASE=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql,classpath:schema-h2-master-ext.sql
+      data-locations: classpath:data-h2-seed.sql,classpath:data-h2-master-seed.sql,classpath:data-h2-scm-seed.sql,classpath:data-h2-sal-seed.sql,classpath:data-h2-inv-seed.sql,classpath:data-h2-mfg-seed.sql,classpath:data-h2-fin-seed.sql,classpath:data-h2-tax-seed.sql,classpath:data-h2-sysmsg-seed.sql
+      continue-on-error: false
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+jwt:
+  secret: eerp-test-secret-key-2026-must-be-at-least-256-bits-long-for-hs256
+  expiration: 86400000
+  header: Authorization
+  prefix: Bearer
+
+logging:
+  level:
+    com.eerp: DEBUG
+    org.springframework: WARN
+    org.springframework.security: WARN
+
+eerp:
+  storage:
+    type: local
+    local:
+      base-path: ./target/test-attachments
+  wf:
+    callback-token: test-wf-token
+    push-timeout-ms: 5000

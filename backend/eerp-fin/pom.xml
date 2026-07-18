@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.eerp</groupId>
+        <artifactId>eerp-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>eerp-fin</artifactId>
+    <packaging>jar</packaging>
+    <name>eerp-fin</name>
+    <description>EERP 财务会计（应收应付/总账/成本/固定资产/费用报销）</description>
+
+    <dependencies>
+        <!-- 内部模块 -->
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-mfg</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-scm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-master</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-bos</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-meta</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.eerp</groupId>
+            <artifactId>eerp-common</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

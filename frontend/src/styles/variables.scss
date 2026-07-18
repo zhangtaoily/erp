@@ -1,0 +1,24 @@
+// 主题变量 - 金蝶云星空风格
+$primary-color: #1564ff;
+$success-color: #52c41a;
+$warning-color: #faad14;
+$danger-color: #f5222d;
+$info-color: #909399;
+
+// 状态色（对应 pact_state 0-4）
+$state-draft: #909399;       // 0 暂存
+$state-created: #1564ff;     // 1 已创建
+$state-submitted: #faad14;   // 2 已提交
+$state-audited: #52c41a;     // 3 已审核
+$state-rejected: #f5222d;    // 4 已驳回
+
+// 布局
+$header-height: 48px;
+$sidebar-width: 220px;
+$sidebar-collapsed-width: 64px;
+$tags-height: 34px;
+
+// 字体
+$font-size-base: 13px;
+$font-size-small: 12px;
+$font-size-large: 14px;
