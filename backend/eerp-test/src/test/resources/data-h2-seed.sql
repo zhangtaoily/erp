@@ -163,3 +163,73 @@ INSERT INTO md_unit (id, code, name, unit_type, status) VALUES
   (1, 'KG',  '千克', 'WEIGHT', 1),
   (2, 'M',   '米',   'LENGTH', 1),
   (3, 'PCS', '个',   'COUNT',  1);
+
+
+-- ============================================================
+-- 3. 系统菜单（sys_menu）—— 前端侧边栏从此表动态加载
+--    8 个一级目录 + 对应子菜单，与原 config/menu.ts 保持一致
+-- ============================================================
+
+-- 3.1 一级目录（menu_type='directory', parent_id=0）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status, remark) VALUES
+  (3001, 'BOS_MODEL',     '业务对象建模', 0, 'directory', NULL, 'DataBoard',   1, 1, 1, 'BOS 建模相关'),
+  (3002, 'BOS_FORM',      '表单与渲染',   0, 'directory', NULL, 'Document',    2, 1, 1, '表单设计/插件'),
+  (3003, 'BOS_STATE',     '状态与操作',   0, 'directory', NULL, 'Switch',      3, 1, 1, '状态机/下推/按钮/打印'),
+  (3004, 'BOS_LIST',      '列表与查询',   0, 'directory', NULL, 'Search',      4, 1, 1, '列表字段/查询方案'),
+  (3005, 'BOS_RULE',      '编码与规则',   0, 'directory', NULL, 'SetUp',       5, 1, 1, '编码规则/实体规则/反写规则'),
+  (3006, 'SYS_PERM',      '权限管理',     0, 'directory', NULL, 'Lock',        6, 1, 1, '用户/角色/部门/权限'),
+  (3007, 'SYS_INTEGRATION','集成与附件',  0, 'directory', NULL, 'Connection',  7, 1, 1, '导入/导出/API日志/工作流'),
+  (3008, 'BILL_RUNTIME',  '单据运行时',   0, 'directory', NULL, 'Files',       8, 1, 1, '单据列表与详情');
+
+-- 3.2 业务对象建模子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3101, 'BOS_BUSINESS_OBJECT', '业务对象管理',  3001, 'menu', '/bos/business-object', NULL, 1, 1, 1),
+  (3102, 'BOS_ENTITY_MODEL',    '实体与字段建模', 3001, 'menu', '/bos/entity-model',    NULL, 2, 1, 1),
+  (3103, 'BOS_OBJECT_RELATION', '对象关系配置',   3001, 'menu', '/bos/object-relation', NULL, 3, 1, 1);
+
+-- 3.3 表单与渲染子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3201, 'BOS_FORM_DESIGNER', '表单设计器',     3002, 'menu', '/bos/form-designer', NULL, 1, 1, 1),
+  (3202, 'BOS_FORM_PLUGIN',   '表单插件配置',   3002, 'menu', '/bos/form-plugin',   NULL, 2, 1, 1);
+
+-- 3.4 状态与操作子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3301, 'BOS_STATE_MACHINE',  '状态机配置',     3003, 'menu', '/bos/state-machine',  NULL, 1, 1, 1),
+  (3302, 'BOS_PUSH_RULE',      '下推转换规则',   3003, 'menu', '/bos/push-rule',      NULL, 2, 1, 1),
+  (3303, 'BOS_BUTTON_CONFIG',  '自定义按钮配置', 3003, 'menu', '/bos/button-config',  NULL, 3, 1, 1),
+  (3304, 'BOS_PRINT_DESIGNER', '打印模板设计器', 3003, 'menu', '/bos/print-designer', NULL, 4, 1, 1);
+
+-- 3.5 列表与查询子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3401, 'BOS_LIST_CONFIG',    '列表字段配置',   3004, 'menu', '/bos/list-config',    NULL, 1, 1, 1),
+  (3402, 'BOS_QUERY_SCHEME',   '查询方案管理',   3004, 'menu', '/bos/query-scheme',   NULL, 2, 1, 1);
+
+-- 3.6 编码与规则子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3501, 'BOS_CODE_RULE',      '编码规则配置',   3005, 'menu', '/bos/code-rule',      NULL, 1, 1, 1),
+  (3502, 'BOS_ENTITY_RULE',    '实体服务规则',   3005, 'menu', '/bos/entity-rule',    NULL, 2, 1, 1),
+  (3503, 'BOS_WRITEBACK_RULE', '反写规则配置',   3005, 'menu', '/bos/writeback-rule', NULL, 3, 1, 1);
+
+-- 3.7 权限管理子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3601, 'SYS_ORG',             '组织架构',         3006, 'menu', '/sys/org',             NULL, 1, 1, 1),
+  (3602, 'SYS_USER',            '用户管理',         3006, 'menu', '/sys/user',            NULL, 2, 1, 1),
+  (3603, 'SYS_ROLE',            '角色管理',         3006, 'menu', '/sys/role',            NULL, 3, 1, 1),
+  (3604, 'SYS_DEPT',            '部门管理',         3006, 'menu', '/sys/dept',            NULL, 4, 1, 1),
+  (3605, 'SYS_DATA_PERMISSION', '数据权限（行级）', 3006, 'menu', '/sys/data-permission', NULL, 5, 1, 1),
+  (3606, 'SYS_FIELD_PERMISSION','字段权限（列级）', 3006, 'menu', '/sys/field-permission',NULL, 6, 1, 1),
+  (3607, 'SYS_SECURITY',        '登录安全策略',     3006, 'menu', '/sys/security',        NULL, 7, 1, 1),
+  (3608, 'SYS_MENU',            '菜单管理',         3006, 'menu', '/sys/menu',            NULL, 8, 1, 1, '系统菜单 CRUD');
+
+-- 3.8 集成与附件子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3701, 'SYS_IMPORT_TASK',     '导入任务管理', 3007, 'menu', '/sys/import-task',     NULL, 1, 1, 1),
+  (3702, 'SYS_IMPORT_TEMPLATE', '导入模板配置', 3007, 'menu', '/sys/import-template', NULL, 2, 1, 1),
+  (3703, 'SYS_API_LOG',         'API 接口日志', 3007, 'menu', '/sys/api-log',         NULL, 3, 1, 1),
+  (3704, 'SYS_WF_INSTANCE',     '工作流实例',   3007, 'menu', '/sys/wf-instance',     NULL, 4, 1, 1),
+  (3705, 'SYS_STORAGE',         '附件存储配置', 3007, 'menu', '/sys/storage',         NULL, 5, 1, 1),
+  (3706, 'SYS_API_AUTH',        'API 鉴权配置', 3007, 'menu', '/sys/api-auth',        NULL, 6, 1, 1);
+
+-- 3.9 单据运行时子菜单
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3801, 'BILL_SAL_ORDER', '销售订单列表', 3008, 'menu', '/bill/sal_order', NULL, 1, 1, 1);

@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 表单字段元数据接口
+ * <p>entity_code 在不同 bo_code 下可能重复（如 SAL_INT_CONT 和 SAL_QUOTE 都有 goods 子表），
+ * 所有接口必须用 bo_code + entity_code 联合定位，避免数据串号。</p>
+ */
 @RestController
 @RequestMapping("/api")
 public class FieldController {
@@ -18,9 +23,13 @@ public class FieldController {
         this.formFieldService = formFieldService;
     }
 
-    @GetMapping("/entity/{entityCode}/fields")
-    public Result<List<MetaFormField>> list(@PathVariable String entityCode) {
-        return Result.ok(formFieldService.listByEntityCode(entityCode));
+    /**
+     * 查询指定业务对象 + 实体下的字段列表
+     */
+    @GetMapping("/bo/{boCode}/entity/{entityCode}/fields")
+    public Result<List<MetaFormField>> list(@PathVariable String boCode,
+                                            @PathVariable String entityCode) {
+        return Result.ok(formFieldService.listByBoAndEntity(boCode, entityCode));
     }
 
     @PostMapping("/field")
@@ -42,8 +51,13 @@ public class FieldController {
         return Result.ok();
     }
 
-    @PostMapping("/entity/{entityCode}/fields/batch")
-    public Result<Void> batchSave(@PathVariable String entityCode, @RequestBody Map<String, Object> body) {
+    /**
+     * 批量保存字段（先删后插，按 bo_code + entity_code 联合定位）
+     */
+    @PostMapping("/bo/{boCode}/entity/{entityCode}/fields/batch")
+    public Result<Void> batchSave(@PathVariable String boCode,
+                                  @PathVariable String entityCode,
+                                  @RequestBody Map<String, Object> body) {
         Object fieldsObj = body.get("fields");
         List<MetaFormField> fields = new java.util.ArrayList<>();
         if (fieldsObj instanceof List) {
@@ -52,7 +66,7 @@ public class FieldController {
                 fields.add(field);
             }
         }
-        formFieldService.batchSave(entityCode, fields);
+        formFieldService.batchSave(boCode, entityCode, fields);
         return Result.ok();
     }
 

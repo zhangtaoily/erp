@@ -33,48 +33,50 @@
         <span class="panel-title">业务对象列表</span>
         <el-button type="primary" size="small" @click="onAdd">新增</el-button>
       </div>
-      <el-table :data="tableData" v-loading="loading" size="small" border stripe @row-dblclick="onEdit">
-        <el-table-column prop="bo_code" label="编码" width="140" fixed />
-        <el-table-column prop="bo_name" label="名称" min-width="120" />
-        <el-table-column label="类型" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="boTypeTag(row.bo_type)" size="small">{{ boTypeLabel(row.bo_type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="main_table" label="主表" width="140" />
-        <el-table-column label="状态机" width="70" align="center">
-          <template #default="{ row }">
-            <el-switch :model-value="row.is_stateful" disabled />
-          </template>
-        </el-table-column>
-        <el-table-column label="下推" width="60" align="center">
-          <template #default="{ row }">
-            <el-switch :model-value="row.is_pushable" disabled />
-          </template>
-        </el-table-column>
-        <el-table-column label="打印" width="60" align="center">
-          <template #default="{ row }">
-            <el-switch :model-value="row.is_printable" disabled />
-          </template>
-        </el-table-column>
-        <el-table-column label="组织类型" width="90" align="center">
-          <template #default="{ row }">{{ orgTypeLabel(row.org_type) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="80" align="center">
-          <template #default="{ row }">
-            <el-switch :model-value="row.status === 1" @change="onToggleStatus(row as any)" />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
-            <el-button link type="primary" size="small" @click="onView(row as any)">查看</el-button>
-            <el-button link :type="row.status === 1 ? 'danger' : 'success'" size="small" @click="onToggleStatus(row as any)">
-              {{ row.status === 1 ? '停用' : '启用' }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" v-loading="loading" size="small" border stripe @row-dblclick="onEdit">
+          <el-table-column prop="bo_code" label="编码" width="140" fixed />
+          <el-table-column prop="bo_name" label="名称" min-width="120" />
+          <el-table-column label="类型" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="boTypeTag(row.bo_type)" size="small">{{ boTypeLabel(row.bo_type) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="main_table" label="主表" width="140" />
+          <el-table-column label="状态机" width="70" align="center">
+            <template #default="{ row }">
+              <el-switch :model-value="row.is_stateful" disabled />
+            </template>
+          </el-table-column>
+          <el-table-column label="下推" width="60" align="center">
+            <template #default="{ row }">
+              <el-switch :model-value="row.is_pushable" disabled />
+            </template>
+          </el-table-column>
+          <el-table-column label="打印" width="60" align="center">
+            <template #default="{ row }">
+              <el-switch :model-value="row.is_printable" disabled />
+            </template>
+          </el-table-column>
+          <el-table-column label="组织类型" width="90" align="center">
+            <template #default="{ row }">{{ orgTypeLabel(row.org_type) }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="80" align="center">
+            <template #default="{ row }">
+              <el-switch :model-value="row.status === 1" @change="onToggleStatus(row as any)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="160" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
+              <el-button link type="primary" size="small" @click="onView(row as any)">查看</el-button>
+              <el-button link :type="row.status === 1 ? 'danger' : 'success'" size="small" @click="onToggleStatus(row as any)">
+                {{ row.status === 1 ? '停用' : '启用' }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pager-wrap">
         <el-pagination
           v-model:current-page="page.pageNum"
@@ -270,6 +272,10 @@ onMounted(loadList)
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
 }
 .panel-title { font-size: 14px; font-weight: 600; }
 .pager-wrap {

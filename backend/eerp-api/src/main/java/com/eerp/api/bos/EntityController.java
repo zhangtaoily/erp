@@ -32,7 +32,8 @@ public class EntityController {
         for (MetaFormEntity entity : entities) {
             FormEntityDTO dto = new FormEntityDTO();
             BeanUtils.copyProperties(entity, dto);
-            List<MetaFormField> fields = formFieldService.listByEntityCode(entity.getEntityCode());
+            // 必须用 bo_code + entity_code 联合定位，避免不同 BO 下同名实体串号
+            List<MetaFormField> fields = formFieldService.listByBoAndEntity(boCode, entity.getEntityCode());
             dto.setFields(fields);
             result.add(dto);
         }

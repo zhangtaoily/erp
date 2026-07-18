@@ -1,5 +1,5 @@
 <template>
-  <div class="al-page page-container">
+  <div class="al-page">
     <!-- 筛选栏 -->
     <div class="panel-card filter-bar">
       <el-form :inline="true" size="small">
@@ -55,36 +55,38 @@
 
     <!-- 日志列表 -->
     <div class="panel-card table-panel">
-      <el-table :data="tableData" size="small" border stripe v-loading="loading" @row-click="onRowClick">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column label="分类" width="80">
-          <template #default="{ row }">
-            <el-tag size="small" :type="categoryTag(row.category) || 'info'">{{ categoryLabel(row.category) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="endpoint" label="端点" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="method" label="方法" width="70">
-          <template #default="{ row }">
-            <el-tag size="small" :type="methodTag(row.method) || 'info'" effect="plain">{{ row.method }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="耗时" width="90" align="right">
-          <template #default="{ row }">
-            <span :class="{ 'slow-warn': row.duration > 1000 }">{{ row.duration }}ms</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="70">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">{{ row.status === 'success' ? '成功' : '失败' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="时间" width="160" />
-        <el-table-column label="操作" width="80" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click.stop="onDetail(row as any)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading" @row-click="onRowClick">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column label="分类" width="80">
+            <template #default="{ row }">
+              <el-tag size="small" :type="categoryTag(row.category) || 'info'">{{ categoryLabel(row.category) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="endpoint" label="端点" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="method" label="方法" width="70">
+            <template #default="{ row }">
+              <el-tag size="small" :type="methodTag(row.method) || 'info'" effect="plain">{{ row.method }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="耗时" width="90" align="right">
+            <template #default="{ row }">
+              <span :class="{ 'slow-warn': row.duration > 1000 }">{{ row.duration }}ms</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="70">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'success' ? 'success' : 'danger'" size="small">{{ row.status === 'success' ? '成功' : '失败' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="create_time" label="时间" width="160" />
+          <el-table-column label="操作" width="80" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click.stop="onDetail(row as any)">详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -237,9 +239,12 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .al-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .filter-bar { padding: 12px 12px 0; }
 .stat-cards {
@@ -258,7 +263,17 @@ onMounted(loadData)
     &.danger { color: #f5222d; }
   }
 }
-.table-panel { padding: 12px; flex: 1; }
+.table-panel {
+  padding: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
+}
 .pagination-bar { margin-top: 12px; display: flex; justify-content: flex-end; }
 .slow-warn { color: #faad14; font-weight: 600; }
 .error-msg { color: #f5222d; }

@@ -24,13 +24,16 @@ export const entityApi = {
 }
 
 // 字段
+// entity_code 在不同 bo_code 下可能重复（如 SAL_INT_CONT 和 SAL_QUOTE 都有 goods 子表），
+// 所有接口必须用 bo_code + entity_code 联合定位，避免数据串号
 export const fieldApi = {
-  list: (entityCode: string) => request.get<FormField[]>(`/entity/${entityCode}/fields`),
+  list: (boCode: string, entityCode: string) =>
+    request.get<FormField[]>(`/bo/${boCode}/entity/${entityCode}/fields`),
   create: (data: Partial<FormField>) => request.post<FormField>('/field', data),
   update: (id: string, data: Partial<FormField>) => request.put(`/field/${id}`, data),
   delete: (id: string) => request.delete(`/field/${id}`),
-  batchSave: (entityCode: string, fields: Partial<FormField>[]) =>
-    request.post(`/entity/${entityCode}/fields/batch`, { fields })
+  batchSave: (boCode: string, entityCode: string, fields: Partial<FormField>[]) =>
+    request.post(`/bo/${boCode}/entity/${entityCode}/fields/batch`, { fields })
 }
 
 // 表单布局元数据（meta_form_layout 持久化，对应 PRD 5.2.10 + 1.1.4）

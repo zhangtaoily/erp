@@ -18,8 +18,9 @@ public class MetaFormFieldServiceImpl
         implements MetaFormFieldService {
 
     @Override
-    public List<MetaFormField> listByEntityCode(String entityCode) {
+    public List<MetaFormField> listByBoAndEntity(String boCode, String entityCode) {
         return lambdaQuery()
+                .eq(MetaFormField::getBoCode, boCode)
                 .eq(MetaFormField::getEntityCode, entityCode)
                 .orderByAsc(MetaFormField::getSortIndex)
                 .list();
@@ -27,14 +28,20 @@ public class MetaFormFieldServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void batchSave(String entityCode, List<MetaFormField> fields) {
-        // 先清除该实体下既有字段
-        lambdaUpdate().eq(MetaFormField::getEntityCode, entityCode).remove();
+    public void batchSave(String boCode, String entityCode, List<MetaFormField> fields) {
+        // 先清除该 BO + 实体下既有字段
+        lambdaUpdate()
+                .eq(MetaFormField::getBoCode, boCode)
+                .eq(MetaFormField::getEntityCode, entityCode)
+                .remove();
         if (fields == null || fields.isEmpty()) {
             return;
         }
-        // 统一归属到指定实体
-        fields.forEach(f -> f.setEntityCode(entityCode));
+        // 统一归属到指定 BO + 实体
+        fields.forEach(f -> {
+            f.setBoCode(boCode);
+            f.setEntityCode(entityCode);
+        });
         saveBatch(fields);
     }
 }

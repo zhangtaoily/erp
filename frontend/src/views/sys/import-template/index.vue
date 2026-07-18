@@ -1,5 +1,5 @@
 <template>
-  <div class="itp-page page-container">
+  <div class="itp-page">
     <!-- 筛选栏 -->
     <div class="panel-card search-bar">
       <el-form :inline="true" size="small">
@@ -27,43 +27,45 @@
 
     <!-- 列表 -->
     <div class="panel-card table-panel">
-      <el-table :data="tableData" size="small" border stripe v-loading="loading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column prop="template_code" label="模板编码" width="120" />
-        <el-table-column prop="template_name" label="模板名称" min-width="160" />
-        <el-table-column label="业务对象" width="110">
-          <template #default="{ row }">{{ boLabel(row.bo_code) }}</template>
-        </el-table-column>
-        <el-table-column label="字段映射" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" type="info" effect="plain">{{ (row.field_mappings || []).length }} 项</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="unique_fields" label="唯一字段" width="140" show-overflow-tooltip />
-        <el-table-column label="允许更新" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.allow_update === 1" size="small" type="success">是</el-tag>
-            <el-tag v-else size="small" type="info">否</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="update_key" label="更新键" width="140" show-overflow-tooltip />
-        <el-table-column label="出错策略" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.fail_fast === 1 ? 'danger' : 'warning'" size="small">{{ row.fail_fast === 1 ? '终止' : '跳过' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="70">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column prop="template_code" label="模板编码" width="120" />
+          <el-table-column prop="template_name" label="模板名称" min-width="160" />
+          <el-table-column label="业务对象" width="110">
+            <template #default="{ row }">{{ boLabel(row.bo_code) }}</template>
+          </el-table-column>
+          <el-table-column label="字段映射" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="info" effect="plain">{{ (row.field_mappings || []).length }} 项</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="unique_fields" label="唯一字段" width="140" show-overflow-tooltip />
+          <el-table-column label="允许更新" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.allow_update === 1" size="small" type="success">是</el-tag>
+              <el-tag v-else size="small" type="info">否</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="update_key" label="更新键" width="140" show-overflow-tooltip />
+          <el-table-column label="出错策略" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.fail_fast === 1 ? 'danger' : 'warning'" size="small">{{ row.fail_fast === 1 ? '终止' : '跳过' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="70">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -310,12 +312,25 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .itp-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .search-bar { padding: 12px 12px 0; }
-.table-panel { padding: 12px; flex: 1; }
+.table-panel {
+  padding: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
+}
 .pagination-bar { margin-top: 12px; display: flex; justify-content: flex-end; }
 :deep(.el-divider__text) { font-size: 13px; font-weight: 600; }
 </style>

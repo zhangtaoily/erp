@@ -1,5 +1,5 @@
 <template>
-  <div class="wf-page page-container">
+  <div class="wf-page">
     <!-- 筛选栏 -->
     <div class="panel-card search-bar">
       <el-form :inline="true" size="small">
@@ -29,43 +29,45 @@
         <span class="panel-title">工作流实例列表</span>
         <el-button type="primary" size="small" @click="onSimulateCallback">模拟回调</el-button>
       </div>
-      <el-table :data="tableData" size="small" border stripe v-loading="loading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column label="实例号" width="160">
-          <template #default="{ row }">
-            <span class="mono">{{ row.instance_id }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="请求号" width="160">
-          <template #default="{ row }">
-            <span class="mono">{{ row.request_id || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="单据类型" width="100">
-          <template #default="{ row }">{{ billTypeLabel(row.bill_type) }}</template>
-        </el-table-column>
-        <el-table-column prop="bill_code" label="单据编号" width="150" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="statusTag(row.status) || 'info'" size="small">{{ statusLabel(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="current_node" label="当前节点" width="130" />
-        <el-table-column prop="approver" label="当前审批人" width="100" />
-        <el-table-column prop="submit_by" label="提交人" width="90" />
-        <el-table-column prop="submit_time" label="提交时间" width="160" />
-        <el-table-column prop="callback_time" label="回调时间" width="160">
-          <template #default="{ row }">{{ row.callback_time || '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-        <el-table-column label="操作" width="130" fixed="right">
-          <template #default="{ row }">
-            <el-button v-if="row.status === 'approving'" link type="success" size="small" @click="onCallback(row as any, 'approved')">通过</el-button>
-            <el-button v-if="row.status === 'approving'" link type="danger" size="small" @click="onCallback(row as any, 'rejected')">驳回</el-button>
-            <el-button v-if="row.status === 'approving'" link type="warning" size="small" @click="onCallback(row as any, 'canceled')">取消</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column label="实例号" width="160">
+            <template #default="{ row }">
+              <span class="mono">{{ row.instance_id }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="请求号" width="160">
+            <template #default="{ row }">
+              <span class="mono">{{ row.request_id || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="单据类型" width="100">
+            <template #default="{ row }">{{ billTypeLabel(row.bill_type) }}</template>
+          </el-table-column>
+          <el-table-column prop="bill_code" label="单据编号" width="150" />
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag :type="statusTag(row.status) || 'info'" size="small">{{ statusLabel(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="current_node" label="当前节点" width="130" />
+          <el-table-column prop="approver" label="当前审批人" width="100" />
+          <el-table-column prop="submit_by" label="提交人" width="90" />
+          <el-table-column prop="submit_time" label="提交时间" width="160" />
+          <el-table-column prop="callback_time" label="回调时间" width="160">
+            <template #default="{ row }">{{ row.callback_time || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
+          <el-table-column label="操作" width="130" fixed="right">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 'approving'" link type="success" size="small" @click="onCallback(row as any, 'approved')">通过</el-button>
+              <el-button v-if="row.status === 'approving'" link type="danger" size="small" @click="onCallback(row as any, 'rejected')">驳回</el-button>
+              <el-button v-if="row.status === 'approving'" link type="warning" size="small" @click="onCallback(row as any, 'canceled')">取消</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -177,12 +179,25 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .wf-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .search-bar { padding: 12px 12px 0; }
-.table-panel { padding: 12px; flex: 1; }
+.table-panel {
+  padding: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
+}
 .panel-header {
   display: flex;
   align-items: center;

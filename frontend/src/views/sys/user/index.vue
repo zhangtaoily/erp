@@ -1,5 +1,5 @@
 <template>
-  <div class="user-page page-container">
+  <div class="user-page">
     <!-- 搜索栏 -->
     <div class="panel-card search-bar">
       <el-form :inline="true" size="small">
@@ -33,41 +33,43 @@
 
     <!-- 用户列表 -->
     <div class="panel-card table-panel">
-      <el-table :data="tableData" size="small" border stripe v-loading="loading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column prop="user_code" label="账号" width="110" />
-        <el-table-column prop="user_name" label="姓名" width="90" />
-        <el-table-column label="主组织" width="130">
-          <template #default="{ row }">{{ orgName(row.org_id) }}</template>
-        </el-table-column>
-        <el-table-column label="多组织" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" type="info" effect="plain">{{ userOrgCount(row) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="部门" width="90">
-          <template #default="{ row }">{{ deptName(row.dept_id) }}</template>
-        </el-table-column>
-        <el-table-column prop="position" label="岗位" width="100" />
-        <el-table-column label="角色" min-width="160">
-          <template #default="{ row }">
-            <el-tag v-for="rid in row.role_ids" :key="rid" size="small" class="mr-4">{{ roleName(rid) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="phone" label="手机号" width="120" />
-        <el-table-column label="状态" width="70">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onConfigOrgs(row as any)">多组织</el-button>
-            <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column prop="user_code" label="账号" width="110" />
+          <el-table-column prop="user_name" label="姓名" width="90" />
+          <el-table-column label="主组织" width="130">
+            <template #default="{ row }">{{ orgName(row.org_id) }}</template>
+          </el-table-column>
+          <el-table-column label="多组织" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="info" effect="plain">{{ userOrgCount(row) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="部门" width="90">
+            <template #default="{ row }">{{ deptName(row.dept_id) }}</template>
+          </el-table-column>
+          <el-table-column prop="position" label="岗位" width="100" />
+          <el-table-column label="角色" min-width="160">
+            <template #default="{ row }">
+              <el-tag v-for="rid in row.role_ids" :key="rid" size="small" class="mr-4">{{ roleName(rid) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="phone" label="手机号" width="120" />
+          <el-table-column label="状态" width="70">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="170" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="onConfigOrgs(row as any)">多组织</el-button>
+              <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -386,9 +388,12 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .user-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .search-bar {
   padding: 12px 12px 0;
@@ -396,6 +401,13 @@ onMounted(async () => {
 .table-panel {
   padding: 12px;
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
 }
 .pagination-bar {
   margin-top: 12px;

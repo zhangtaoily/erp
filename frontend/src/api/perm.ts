@@ -48,6 +48,32 @@ export const dataPermApi = {
     request.put(`/role/${roleId}/data-perm`, { rules })
 }
 
+// 系统菜单（侧边栏从此接口动态加载）
+export interface SysMenu {
+  id: string
+  menu_code: string
+  menu_name: string
+  parent_id: string | number
+  menu_type: 'directory' | 'menu' | 'button'
+  path?: string
+  icon?: string
+  sort_index: number
+  visible: 0 | 1
+  status: 0 | 1
+  remark?: string
+  children?: SysMenu[]
+}
+
+export const menuApi = {
+  // 侧边栏渲染用：仅启用且可见的菜单树
+  tree: () => request.get<SysMenu[]>('/menu/tree'),
+  // 管理后台用：全部菜单树（含停用）
+  adminTree: () => request.get<SysMenu[]>('/menu/admin/tree'),
+  create: (data: Partial<SysMenu>) => request.post<SysMenu>('/menu', data),
+  update: (id: string, data: Partial<SysMenu>) => request.put(`/menu/${id}`, data),
+  delete: (id: string) => request.delete(`/menu/${id}`)
+}
+
 export const fieldPermApi = {
   list: (roleId: string, boCode: string) =>
     request.get<FieldPermission[]>(`/role/${roleId}/field-perm`, { params: { boCode } }),

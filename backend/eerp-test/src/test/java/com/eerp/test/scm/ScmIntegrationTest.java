@@ -149,7 +149,7 @@ class ScmIntegrationTest extends AbstractIntegrationTest {
         Integer subCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM meta_form_entity WHERE bo_code LIKE 'PUR_%' AND entity_type = 'sub'",
                 Integer.class);
-        assertEquals(8, subCount, "应注册 8 个子/孙实体（7 子 + 1 孙）");
+        assertEquals(7, subCount, "应注册 7 个子实体（孙表 entity_type=grandchild 不计入）");
     }
 
     @Test
@@ -176,7 +176,7 @@ class ScmIntegrationTest extends AbstractIntegrationTest {
         // 孙表
         Map<String, Object> grand = entities.get(2);
         assertEquals("assign", grand.get("entity_code"));
-        assertEquals("sub", grand.get("entity_type"));
+        assertEquals("grandchild", grand.get("entity_type"));
         assertEquals(2, ((Number) grand.get("entity_level")).intValue());
         assertEquals("goods", grand.get("parent_entity_code"));
         assertEquals("cont_goods_id", grand.get("link_field"));

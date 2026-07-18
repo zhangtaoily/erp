@@ -1,5 +1,5 @@
 <template>
-  <div class="sec-page page-container">
+  <div class="sec-page">
     <!-- 策略配置 -->
     <div class="panel-card policy-panel">
       <div class="panel-header">
@@ -100,25 +100,27 @@
           <el-button size="small" @click="onReset">重置</el-button>
         </div>
       </div>
-      <el-table :data="tableData" size="small" border stripe v-loading="logLoading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column prop="create_time" label="时间" width="160" />
-        <el-table-column label="类型" width="90">
-          <template #default="{ row }">
-            <el-tag :type="loginTypeTag(row.login_type) || 'info'" size="small">{{ loginTypeLabel(row.login_type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="user_code" label="账号" width="120" />
-        <el-table-column prop="user_name" label="姓名" width="100" />
-        <el-table-column prop="ip" label="IP" width="130" />
-        <el-table-column prop="client" label="客户端" min-width="180" show-overflow-tooltip />
-        <el-table-column label="结果" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.result === 'success' ? 'success' : 'danger'" size="small">{{ row.result === 'success' ? '成功' : '失败' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="error_msg" label="错误信息" min-width="200" show-overflow-tooltip />
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="logLoading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column prop="create_time" label="时间" width="160" />
+          <el-table-column label="类型" width="90">
+            <template #default="{ row }">
+              <el-tag :type="loginTypeTag(row.login_type) || 'info'" size="small">{{ loginTypeLabel(row.login_type) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="user_code" label="账号" width="120" />
+          <el-table-column prop="user_name" label="姓名" width="100" />
+          <el-table-column prop="ip" label="IP" width="130" />
+          <el-table-column prop="client" label="客户端" min-width="180" show-overflow-tooltip />
+          <el-table-column label="结果" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.result === 'success' ? 'success' : 'danger'" size="small">{{ row.result === 'success' ? '成功' : '失败' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="error_msg" label="错误信息" min-width="200" show-overflow-tooltip />
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -224,12 +226,25 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .sec-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .policy-panel { padding: 12px 16px; }
-.table-panel { padding: 12px; flex: 1; }
+.table-panel {
+  padding: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
+}
 .panel-header {
   display: flex;
   align-items: center;

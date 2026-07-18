@@ -46,6 +46,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/field-permission', name: 'SysFieldPermission', component: () => import('@/views/sys/field-permission/index.vue'), meta: { title: '字段权限（列级）', group: '权限管理' } },
       { path: 'sys/dept', name: 'SysDept', component: () => import('@/views/sys/dept/index.vue'), meta: { title: '部门管理', group: '权限管理' } },
       { path: 'sys/security', name: 'SysSecurity', component: () => import('@/views/sys/security/index.vue'), meta: { title: '登录安全策略', group: '权限管理' } },
+      { path: 'sys/menu', name: 'SysMenu', component: () => import('@/views/sys/menu/index.vue'), meta: { title: '菜单管理', group: '权限管理' } },
       // 集成与附件
       { path: 'sys/import-task', name: 'SysImportTask', component: () => import('@/views/sys/import-task/index.vue'), meta: { title: '导入任务管理', group: '集成与附件' } },
       { path: 'sys/import-template', name: 'SysImportTemplate', component: () => import('@/views/sys/import-template/index.vue'), meta: { title: '导入模板配置', group: '集成与附件' } },

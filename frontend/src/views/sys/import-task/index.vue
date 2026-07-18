@@ -1,5 +1,5 @@
 <template>
-  <div class="it-page page-container">
+  <div class="it-page">
     <!-- 顶部工具栏 -->
     <div class="panel-card toolbar">
       <el-dropdown @command="onDownloadTemplate" trigger="click">
@@ -35,35 +35,37 @@
 
     <!-- 任务列表 -->
     <div class="panel-card table-panel">
-      <el-table :data="tableData" size="small" border stripe v-loading="loading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column label="模板" width="80">
-          <template #default="{ row }">
-            <el-tag size="small" :type="templateTag(row.template_code) || 'info'">{{ templateLabel(row.template_code) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="file_name" label="文件名" min-width="200" show-overflow-tooltip />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="statusTag(row.status) || 'info'" size="small">{{ statusLabel(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="total_rows" label="总数" width="70" align="right" />
-        <el-table-column prop="success_rows" label="成功" width="70" align="right">
-          <template #default="{ row }"><span class="num-success">{{ row.success_rows }}</span></template>
-        </el-table-column>
-        <el-table-column prop="fail_rows" label="失败" width="70" align="right">
-          <template #default="{ row }"><span :class="{ 'num-fail': row.fail_rows > 0 }">{{ row.fail_rows }}</span></template>
-        </el-table-column>
-        <el-table-column prop="create_by" label="创建人" width="80" />
-        <el-table-column prop="create_time" label="创建时间" width="160" />
-        <el-table-column label="操作" width="140" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onViewDetail(row as any)">详情</el-button>
-            <el-button v-if="row.fail_rows > 0" link type="warning" size="small" @click="onViewErrors(row as any)">校验结果</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column label="模板" width="80">
+            <template #default="{ row }">
+              <el-tag size="small" :type="templateTag(row.template_code) || 'info'">{{ templateLabel(row.template_code) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="file_name" label="文件名" min-width="200" show-overflow-tooltip />
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag :type="statusTag(row.status) || 'info'" size="small">{{ statusLabel(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_rows" label="总数" width="70" align="right" />
+          <el-table-column prop="success_rows" label="成功" width="70" align="right">
+            <template #default="{ row }"><span class="num-success">{{ row.success_rows }}</span></template>
+          </el-table-column>
+          <el-table-column prop="fail_rows" label="失败" width="70" align="right">
+            <template #default="{ row }"><span :class="{ 'num-fail': row.fail_rows > 0 }">{{ row.fail_rows }}</span></template>
+          </el-table-column>
+          <el-table-column prop="create_by" label="创建人" width="80" />
+          <el-table-column prop="create_time" label="创建时间" width="160" />
+          <el-table-column label="操作" width="140" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="onViewDetail(row as any)">详情</el-button>
+              <el-button v-if="row.fail_rows > 0" link type="warning" size="small" @click="onViewErrors(row as any)">校验结果</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="query.pageNum"
@@ -281,9 +283,12 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .it-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
 .toolbar {
   padding: 12px;
@@ -299,6 +304,13 @@ onMounted(loadData)
 .table-panel {
   padding: 12px;
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.table-body {
+  flex: 1;
+  overflow: auto;
 }
 .pagination-bar {
   margin-top: 12px;

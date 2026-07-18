@@ -1,5 +1,5 @@
 <template>
-  <div class="aa-page page-container">
+  <div class="aa-page">
     <!-- 鉴权配置列表 -->
     <div class="panel-card table-panel">
       <div class="panel-header">
@@ -11,50 +11,52 @@
           <el-button type="primary" size="small" @click="onAdd">新增配置</el-button>
         </div>
       </div>
-      <el-table :data="tableData" size="small" border stripe v-loading="loading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column label="鉴权方式" width="120">
-          <template #default="{ row }">
-            <el-tag :type="authTypeTag(row.auth_type) || 'info'" size="small">{{ authTypeLabel(row.auth_type) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="标识" min-width="180">
-          <template #default="{ row }">
-            <span v-if="row.auth_type === 'oauth2'">client_id：{{ row.client_id }}</span>
-            <span v-else-if="row.auth_type === 'api_key'">{{ row.api_key_header || 'X-API-Key' }}：{{ row.api_key }}</span>
-            <span v-else-if="row.auth_type === 'jwt'">密钥：{{ row.jwt_secret }}（{{ row.jwt_expire_minutes || 60 }} 分钟）</span>
-            <span v-else>Basic Auth</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="幂等键" width="160">
-          <template #default="{ row }">
-            <el-tag v-if="row.idempotent_enabled === 1" size="small" type="success">启用</el-tag>
-            <el-tag v-else size="small" type="info">未启用</el-tag>
-            <span v-if="row.idempotent_enabled === 1" class="mono">&nbsp;{{ row.idempotent_header }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="幂等TTL" width="100" align="right">
-          <template #default="{ row }">{{ row.idempotent_ttl_seconds ? row.idempotent_ttl_seconds + ' s' : '-' }}</template>
-        </el-table-column>
-        <el-table-column label="Swagger" width="90">
-          <template #default="{ row }">
-            <el-tag v-if="row.swagger_enabled === 1" size="small" type="success">启用</el-tag>
-            <el-tag v-else size="small" type="info">未启用</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column label="操作" width="130" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" size="small" border stripe v-loading="loading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column label="鉴权方式" width="120">
+            <template #default="{ row }">
+              <el-tag :type="authTypeTag(row.auth_type) || 'info'" size="small">{{ authTypeLabel(row.auth_type) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="标识" min-width="180">
+            <template #default="{ row }">
+              <span v-if="row.auth_type === 'oauth2'">client_id：{{ row.client_id }}</span>
+              <span v-else-if="row.auth_type === 'api_key'">{{ row.api_key_header || 'X-API-Key' }}：{{ row.api_key }}</span>
+              <span v-else-if="row.auth_type === 'jwt'">密钥：{{ row.jwt_secret }}（{{ row.jwt_expire_minutes || 60 }} 分钟）</span>
+              <span v-else>Basic Auth</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="幂等键" width="160">
+            <template #default="{ row }">
+              <el-tag v-if="row.idempotent_enabled === 1" size="small" type="success">启用</el-tag>
+              <el-tag v-else size="small" type="info">未启用</el-tag>
+              <span v-if="row.idempotent_enabled === 1" class="mono">&nbsp;{{ row.idempotent_header }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="幂等TTL" width="100" align="right">
+            <template #default="{ row }">{{ row.idempotent_ttl_seconds ? row.idempotent_ttl_seconds + ' s' : '-' }}</template>
+          </el-table-column>
+          <el-table-column label="Swagger" width="90">
+            <template #default="{ row }">
+              <el-tag v-if="row.swagger_enabled === 1" size="small" type="success">启用</el-tag>
+              <el-tag v-else size="small" type="info">未启用</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
+          <el-table-column label="操作" width="130" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="onEdit(row as any)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="onDelete(row as any)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
 
     <!-- 幂等键记录 -->
@@ -67,24 +69,26 @@
           </template>
         </el-input>
       </div>
-      <el-table :data="idemRecords" size="small" border stripe v-loading="idemLoading">
-        <el-table-column type="index" label="#" width="45" />
-        <el-table-column label="幂等键" width="200">
-          <template #default="{ row }"><span class="mono">{{ row.idempotent_key }}</span></template>
-        </el-table-column>
-        <el-table-column prop="method" label="方法" width="70" />
-        <el-table-column prop="api_url" label="接口" min-width="160" show-overflow-tooltip />
-        <el-table-column label="状态码" width="80" align="right">
-          <template #default="{ row }">
-            <el-tag :type="row.status_code === 200 ? 'success' : 'danger'" size="small">{{ row.status_code }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="160" />
-        <el-table-column prop="expire_time" label="过期时间" width="160" />
-        <el-table-column label="请求体" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }"><span class="json-cell">{{ row.request_body }}</span></template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="idemRecords" size="small" border stripe v-loading="idemLoading">
+          <el-table-column type="index" label="#" width="45" />
+          <el-table-column label="幂等键" width="200">
+            <template #default="{ row }"><span class="mono">{{ row.idempotent_key }}</span></template>
+          </el-table-column>
+          <el-table-column prop="method" label="方法" width="70" />
+          <el-table-column prop="api_url" label="接口" min-width="160" show-overflow-tooltip />
+          <el-table-column label="状态码" width="80" align="right">
+            <template #default="{ row }">
+              <el-tag :type="row.status_code === 200 ? 'success' : 'danger'" size="small">{{ row.status_code }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="create_time" label="创建时间" width="160" />
+          <el-table-column prop="expire_time" label="过期时间" width="160" />
+          <el-table-column label="请求体" min-width="200" show-overflow-tooltip>
+            <template #default="{ row }"><span class="json-cell">{{ row.request_body }}</span></template>
+          </el-table-column>
+        </el-table>
+      </div>
       <div class="pagination-bar">
         <el-pagination
           v-model:current-page="idemQuery.pageNum"
@@ -277,12 +281,24 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .aa-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  overflow: hidden;
 }
-.table-panel, .idem-panel { padding: 12px; }
+.table-panel, .idem-panel {
+  padding: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .idem-panel { flex: 1; }
+.table-body {
+  flex: 1;
+  overflow: auto;
+}
 .panel-header {
   display: flex;
   align-items: center;

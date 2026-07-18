@@ -51,7 +51,7 @@ public class FormMetaCache extends AbstractMetaCache<String, FormMetaVO> {
         for (MetaFormEntity entity : entities) {
             FormEntityDTO dto = new FormEntityDTO();
             BeanUtils.copyProperties(entity, dto);
-            List<MetaFormField> fields = formFieldService.listByEntityCode(entity.getEntityCode());
+            List<MetaFormField> fields = formFieldService.listByBoAndEntity(boCode, entity.getEntityCode());
             dto.setFields(fields);
             entityDTOs.add(dto);
         }

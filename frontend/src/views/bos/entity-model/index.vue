@@ -221,7 +221,11 @@ function onEntityClick(data: FormEntity) {
 }
 
 async function loadFields(entityCode: string) {
-  const res = await fieldApi.list(entityCode)
+  if (!boCode.value) {
+    currentFields.value = []
+    return
+  }
+  const res = await fieldApi.list(boCode.value, entityCode)
   currentFields.value = res || []
 }
 
@@ -302,7 +306,7 @@ function onFieldsChange(fields: FormField[]) {
 
 async function onSaveFields(fields: FormField[]) {
   if (currentEntity.value) {
-    await fieldApi.batchSave(currentEntity.value.entity_code, fields)
+    await fieldApi.batchSave(boCode.value, currentEntity.value.entity_code, fields)
     currentEntity.value.fields = fields
   }
 }
@@ -311,7 +315,7 @@ async function onSaveAll() {
   ElMessage.info('保存全部变更...')
   for (const entity of entities.value) {
     if (entity.fields?.length) {
-      await fieldApi.batchSave(entity.entity_code, entity.fields)
+      await fieldApi.batchSave(boCode.value, entity.entity_code, entity.fields)
     }
   }
   ElMessage.success('全部保存成功')

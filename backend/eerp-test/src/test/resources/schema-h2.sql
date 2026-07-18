@@ -678,6 +678,23 @@ CREATE TABLE sys_role_button (
   UNIQUE (role_id,bo_code,button_code)
 );
 
+-- sys_menu：系统菜单（多级树形，前端侧边栏从此表动态加载）
+CREATE TABLE sys_menu (
+  id bigint NOT NULL,
+  menu_code varchar(50) NOT NULL,
+  menu_name varchar(100) NOT NULL,
+  parent_id bigint NOT NULL DEFAULT 0,
+  menu_type varchar(20) NOT NULL DEFAULT 'menu',
+  path varchar(200) DEFAULT NULL,
+  icon varchar(50) DEFAULT NULL,
+  sort_index int NOT NULL DEFAULT 99,
+  visible SMALLINT NOT NULL DEFAULT 1,
+  status SMALLINT NOT NULL DEFAULT 1,
+  remark varchar(500) DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE (menu_code)
+);
+
 -- field_permission：字段权限（列级，visible/hidden/mask）
 CREATE TABLE field_permission (
   id bigint NOT NULL,

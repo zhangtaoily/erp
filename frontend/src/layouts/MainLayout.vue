@@ -37,21 +37,25 @@
           router
           class="sidebar-menu"
         >
-          <template v-for="item in menuConfig" :key="item.title">
-            <el-sub-menu :index="item.title">
+          <template v-for="item in sidebarMenu" :key="item.menu_code || item.title">
+            <el-sub-menu :index="item.menu_code || item.title">
               <template #title>
-                <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-                <span>{{ item.title }}</span>
+                <el-icon v-if="item.icon || item.menu_icon">
+                  <component :is="item.icon || item.menu_icon" />
+                </el-icon>
+                <span>{{ item.menu_name || item.title }}</span>
               </template>
-              <template v-for="child in item.children" :key="child.path">
-                <el-menu-item :index="child.path || ''">{{ child.title }}</el-menu-item>
+              <template v-for="child in (item.children || item.children_menu)" :key="child.path || child.menu_path">
+                <el-menu-item :index="child.path || child.menu_path || ''">
+                  {{ child.title || child.menu_name }}
+                </el-menu-item>
               </template>
             </el-sub-menu>
           </template>
         </el-menu>
       </el-aside>
 
-      <el-container>
+      <el-container direction="vertical">
         <!-- tags 标签页 -->
         <div class="app-tags">
           <el-tag
@@ -71,7 +75,7 @@
         <!-- 主内容区 -->
         <el-main class="app-main">
           <router-view v-slot="{ Component }">
-            <keep-alive>
+            <keep-alive :max="10">
               <component :is="Component" />
             </keep-alive>
           </router-view>
@@ -82,9 +86,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { menuConfig } from '@/config/menu'
+import { menuApi, type SysMenu } from '@/api/perm'
 
 const route = useRoute()
 const router = useRouter()
@@ -98,6 +103,46 @@ interface Tag {
 }
 
 const tags = ref<Tag[]>([{ path: '/bos/business-object', title: '业务对象管理' }])
+
+// 统一菜单项结构（兼容后端动态加载与前端静态 fallback）
+interface SidebarItem {
+  menu_code?: string
+  title?: string
+  menu_name?: string
+  icon?: string
+  menu_icon?: string
+  children?: { path: string; title: string }[]
+  children_menu?: { menu_path: string; menu_name: string }[]
+}
+
+// 后端动态菜单优先，加载失败或为空时 fallback 到静态 menuConfig
+const remoteMenu = ref<SysMenu[]>([])
+const menuLoadError = ref(false)
+
+const sidebarMenu = computed<SidebarItem[]>(() => {
+  if (menuLoadError.value || !remoteMenu.value.length) {
+    return menuConfig as unknown as SidebarItem[]
+  }
+  return remoteMenu.value.map(m => ({
+    menu_code: m.menu_code,
+    menu_name: m.menu_name,
+    menu_icon: m.icon,
+    children_menu: (m.children || []).map(c => ({ menu_path: c.path || '', menu_name: c.menu_name }))
+  }))
+})
+
+async function loadMenu() {
+  try {
+    const data = await menuApi.tree()
+    remoteMenu.value = data || []
+    if (!remoteMenu.value.length) menuLoadError.value = true
+  } catch (e) {
+    menuLoadError.value = true
+    // 静默 fallback 到静态菜单，不弹错误提示
+  }
+}
+
+onMounted(loadMenu)
 
 // 路由变化时添加标签
 watch(
