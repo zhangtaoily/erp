@@ -25,6 +25,9 @@ public class MetaQueryField extends BaseEntity {
     /** 字段名 */
     private String fieldName;
 
+    /** 所属实体编码（主表/子表/孙表），用于自动 JOIN */
+    private String entityCode;
+
     /** 是否普通查询字段（列表顶部常用筛选区） */
     private Integer isCommon;
 

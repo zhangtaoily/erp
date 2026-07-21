@@ -60,6 +60,7 @@ export interface FormField {
   is_required: boolean
   is_system: boolean       // 系统预置字段不可删
   is_hidden: boolean       // 是否隐藏
+  is_readonly?: boolean    // 是否只读（编辑界面不可修改）
   default_value?: string
   ref_bo_code?: string     // 基础资料引用的目标业务对象
   enum_code?: string       // 枚举编码
@@ -322,6 +323,7 @@ export interface ListColumn {
   bo_code: string
   field_code: string
   field_name: string
+  entity_code?: string    // 所属实体编码（主表/子表/孙表），用于自动 JOIN
   ctrl_type: ControlType  // 控件类型（与 SQL meta_list_column.ctrl_type 对齐）
   is_show: boolean        // 默认是否展示
   is_fixed: 'none' | 'left' | 'right'
@@ -336,6 +338,7 @@ export interface QueryField {
   bo_code: string
   field_code: string
   field_name: string
+  entity_code?: string    // 所属实体编码（主表/子表/孙表）
   ctrl_type: ControlType  // 控件类型（与 SQL meta_list_column.ctrl_type 对齐）
   is_common: boolean      // 普通查询字段
   is_advanced: boolean    // 高级查询字段

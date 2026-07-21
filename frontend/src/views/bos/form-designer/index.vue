@@ -265,6 +265,9 @@
           <el-form-item label="隐藏">
             <el-switch v-model="selectedField.is_hidden" />
           </el-form-item>
+          <el-form-item label="只读">
+            <el-switch v-model="selectedField.is_readonly" :disabled="selectedField.is_system" />
+          </el-form-item>
           <el-form-item label="默认值">
             <el-input v-model="selectedField.default_value" placeholder="如：TODAY" />
           </el-form-item>
@@ -279,6 +282,10 @@
           </el-form-item>
           <el-form-item label="占位提示">
             <el-input v-model="selectedField.placeholder" />
+          </el-form-item>
+          <el-form-item label="计算公式" v-if="['number', 'amount', 'qty'].includes(selectedField.ctrl_type)">
+            <el-input v-model="selectedField.formula" placeholder="如：qty*price" />
+            <div class="formula-tip">用字段编码组成算式，如 qty*price 或 qty*price*discount</div>
           </el-form-item>
         </el-form>
 
@@ -376,7 +383,7 @@
                         <FieldControl
                           :field="f"
                           :model-value="previewData[f.field_code]"
-                          :disabled="f.is_system && mode === 'edit'"
+                          :disabled="mode === 'view' || (f.is_system && mode === 'edit') || f.is_readonly"
                           @update:model-value="(v: any) => (previewData[f.field_code] = v)"
                         />
                       </el-form-item>
@@ -406,7 +413,7 @@
                       <FieldControl
                         :field="f"
                         :model-value="row[f.field_code]"
-                        :disabled="mode === 'view' || f.is_system"
+                        :disabled="mode === 'view' || f.is_system || f.is_readonly"
                         size="small"
                         @update:model-value="(v: any) => (row[f.field_code] = v)"
                       />
@@ -439,7 +446,7 @@
                       <FieldControl
                         :field="f"
                         :model-value="row[f.field_code]"
-                        :disabled="mode === 'view' || f.is_system"
+                        :disabled="mode === 'view' || f.is_system || f.is_readonly"
                         size="small"
                         @update:model-value="(v: any) => (row[f.field_code] = v)"
                       />
@@ -826,6 +833,12 @@ async function onDeleteEntity(entity: FormEntity) {
 }
 
 async function onSave() {
+  // 逐实体批量保存字段元数据（is_readonly/is_hidden/formula 等属性）
+  for (const entity of designEntities.value) {
+    if (!entity.fields || entity.fields.length === 0) continue
+    await formApi.batchSaveFields(boCode.value, entity.entity_code, entity.fields)
+  }
+  // 失效后端表单元数据缓存
   await formApi.saveMeta(boCode.value, { entities: designEntities.value })
   ElMessage.success('表单元数据已保存')
 }
@@ -1362,5 +1375,11 @@ onMounted(async () => {
 }
 .info-form {
   padding: 12px 8px;
+}
+.formula-tip {
+  font-size: 11px;
+  color: #909399;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 </style>

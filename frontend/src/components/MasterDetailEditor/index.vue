@@ -76,7 +76,7 @@
                   <FieldControl
                     :field="f"
                     :model-value="row[f.field_code]"
-                    :disabled="mode === 'view' || f.is_system"
+                    :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index'"
                     size="small"
                     @update:model-value="(v: any) => { row[f.field_code] = v; onSubRowChange(sub, row, f) }"
                   />
@@ -138,7 +138,7 @@
                   <FieldControl
                     :field="f"
                     :model-value="row[f.field_code]"
-                    :disabled="mode === 'view' || f.is_system"
+                    :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index'"
                     size="small"
                     @update:model-value="(v: any) => (row[f.field_code] = v)"
                   />
@@ -224,7 +224,7 @@
                           <FieldControl
                             :field="f"
                             :model-value="gcRow[f.field_code]"
-                            :disabled="mode === 'view' || f.is_system"
+                            :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || !!f.formula"
                             size="small"
                             @update:model-value="(v: any) => (gcRow[f.field_code] = v)"
                           />
@@ -252,7 +252,7 @@
                 <FieldControl
                   :field="f"
                   :model-value="row[f.field_code]"
-                  :disabled="mode === 'view' || f.is_system"
+                  :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || !!f.formula"
                   size="small"
                   @update:model-value="(v: any) => { row[f.field_code] = v; onSubRowChange(sub, row, f) }"
                 />
@@ -312,10 +312,9 @@ function mainFieldsByGroup(group: string): FormField[] {
   return (mainEntity.value?.fields || []).filter(f => (f.group_name || '基本信息') === group)
 }
 
-// 子表数据
+// 子表数据（只读访问，不在渲染期间修改响应式数据，避免重复渲染）
 function getSubData(entityCode: string): any[] {
-  if (!formData.value[entityCode]) formData.value[entityCode] = []
-  return formData.value[entityCode]
+  return formData.value[entityCode] || []
 }
 
 // 孙表实体
@@ -336,11 +335,10 @@ const currentGrandchildEntities = computed(() => {
 
 const activeGcTab = ref('')
 
-// 孙表数据：取挂在子表行上的数组
+// 孙表数据：取挂在子表行上的数组（只读访问）
 function getGrandchildData(gc: FormEntity, parentRow: any): any[] {
   if (!parentRow) return []
-  if (!parentRow[gc.entity_code]) parentRow[gc.entity_code] = []
-  return parentRow[gc.entity_code]
+  return parentRow[gc.entity_code] || []
 }
 
 // 控件列宽（仅用于表格列宽，控件本身由 FieldControl 渲染）
@@ -378,8 +376,14 @@ function onSubSelection(sub: FormEntity, sel: any[]) {
 
 function addSubRow(sub: FormEntity) {
   const newRow: any = { id: '', _tempId: Date.now() }
+  // 行号自动赋值：新增行 = 当前行数 + 1
+  const nextSortIndex = getSubData(sub.entity_code).length + 1
   sub.fields.forEach(f => {
-    newRow[f.field_code] = f.default_value || (f.ctrl_type === 'checkbox' ? false : f.ctrl_type === 'number' || f.ctrl_type === 'amount' || f.ctrl_type === 'qty' ? 0 : '')
+    if (f.field_code === 'sort_index') {
+      newRow[f.field_code] = nextSortIndex
+    } else {
+      newRow[f.field_code] = f.default_value || (f.ctrl_type === 'checkbox' ? false : f.ctrl_type === 'number' || f.ctrl_type === 'amount' || f.ctrl_type === 'qty' ? 0 : '')
+    }
   })
   // 孙表初始化
   getGrandchildEntities(sub.entity_code).forEach(gc => {
@@ -430,9 +434,15 @@ function batchFill(sub: FormEntity) {
 function addGrandchildRow(gc: FormEntity, parentRow: any) {
   if (!parentRow) return
   if (!parentRow[gc.entity_code]) parentRow[gc.entity_code] = []
+  // 行号自动赋值：新增行 = 当前行数 + 1
+  const nextSortIndex = parentRow[gc.entity_code].length + 1
   const newRow: any = { id: '', _tempId: Date.now() }
   gc.fields.forEach(f => {
-    newRow[f.field_code] = f.default_value || (f.ctrl_type === 'number' || f.ctrl_type === 'amount' || f.ctrl_type === 'qty' ? 0 : '')
+    if (f.field_code === 'sort_index') {
+      newRow[f.field_code] = nextSortIndex
+    } else {
+      newRow[f.field_code] = f.default_value || (f.ctrl_type === 'number' || f.ctrl_type === 'amount' || f.ctrl_type === 'qty' ? 0 : '')
+    }
   })
   parentRow[gc.entity_code].push(newRow)
 }
@@ -482,32 +492,31 @@ function recalcSubSummary(sub: FormEntity) {
 function executeFormula(row: any, fields: FormField[]) {
   fields.forEach(f => {
     if (!f.formula) return
-    // 简化公式引擎：仅支持 a*b 模式（包含乘法），按需可扩展
-    const expr = f.formula.trim()
-    const mulMatch = expr.match(/^(\w+)\s*\*\s*(\w+)$/)
-    if (mulMatch) {
-      const a = Number(row[mulMatch[1]]) || 0
-      const b = Number(row[mulMatch[2]]) || 0
-      row[f.field_code] = Math.round(a * b * 100) / 100
-      return
-    }
-    // 加法 a+b
-    const addMatch = expr.match(/^(\w+)\s*\+\s*(\w+)$/)
-    if (addMatch) {
-      const a = Number(row[addMatch[1]]) || 0
-      const b = Number(row[addMatch[2]]) || 0
-      row[f.field_code] = Math.round((a + b) * 100) / 100
-      return
-    }
-    // 减法 a-b
-    const subMatch = expr.match(/^(\w+)\s*-\s*(\w+)$/)
-    if (subMatch) {
-      const a = Number(row[subMatch[1]]) || 0
-      const b = Number(row[subMatch[2]]) || 0
-      row[f.field_code] = Math.round((a - b) * 100) / 100
-      return
+    const result = evalFormula(f.formula, row)
+    if (result !== null && !isNaN(result)) {
+      row[f.field_code] = Math.round(result * 100) / 100
     }
   })
+}
+
+/**
+ * 通用公式求值：将字段编码替换为行数据中的数值，然后计算算术表达式。
+ * 支持 +, -, *, /, () 和数字常量，如 qty*price、qty*price*0.9、(qty*price)-discount
+ */
+function evalFormula(formula: string, row: any): number | null {
+  // 将公式中的字段编码（字母开头的标识符）替换为行数据中的数值
+  const expr = formula.replace(/[a-zA-Z_]\w*/g, (match) => {
+    const v = Number(row[match])
+    return isNaN(v) ? '0' : String(v)
+  })
+  // 安全检查：替换后只允许数字、运算符、括号、小数点
+  if (!/^[\d+\-*/().\s]+$/.test(expr)) return null
+  try {
+    // eslint-disable-next-line no-new-func
+    return new Function('return ' + expr)()
+  } catch {
+    return null
+  }
 }
 
 function onSubRowChange(sub: FormEntity, row: any, _field: FormField) {

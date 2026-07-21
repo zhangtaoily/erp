@@ -152,7 +152,7 @@ public class BillDataAccessor {
             for (Map<String, Object> row : rows) {
                 // 一级子表：自动回填与主表的关联字段
                 if (isLevel(entity, 1) && linkField != null && !linkField.isEmpty()
-                        && row.get(linkField) == null) {
+                        && isNullOrEmpty(row.get(linkField))) {
                     row.put(linkField, mainId);
                 }
                 Long rowId = toLong(row.get("id"));
@@ -198,7 +198,7 @@ public class BillDataAccessor {
             for (Map<String, Object> childRow : childRows) {
                 // 回填孙表与父行的关联字段
                 if (childLinkField != null && !childLinkField.isEmpty()
-                        && childRow.get(childLinkField) == null) {
+                        && isNullOrEmpty(childRow.get(childLinkField))) {
                     childRow.put(childLinkField, parentId);
                 }
                 Long childRowId = toLong(childRow.get("id"));
@@ -410,5 +410,12 @@ public class BillDataAccessor {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** null 或空字符串检查（用于 link_field 回填判断） */
+    private boolean isNullOrEmpty(Object v) {
+        if (v == null) return true;
+        if (v instanceof String) return ((String) v).trim().isEmpty();
+        return false;
     }
 }

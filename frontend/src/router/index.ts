@@ -89,7 +89,7 @@ const WHITE_LIST = ['/login', '/m/approve', '/m/stock', '/m/bill-view', '/m/mess
 router.beforeEach((to, _from, next) => {
   // 设置页面标题
   const title = (to.meta?.title as string) || ''
-  document.title = title ? `${title} - E-ERP BOS 平台` : 'E-ERP BOS 平台'
+  document.title = title ? `${title} - Meta Data Driven ERP BOS 平台` : 'Meta Data Driven ERP BOS 平台'
 
   const token = localStorage.getItem('token')
   if (token) {

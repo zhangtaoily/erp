@@ -6,7 +6,10 @@ export const formApi = {
   getMeta: (boCode: string) => request.get<any>(`/form/${boCode}/meta`),
   saveMeta: (boCode: string, data: any) => request.put(`/form/${boCode}/meta`, data),
   preview: (boCode: string, mode: 'view' | 'edit' | 'add') =>
-    request.get<any>(`/form/${boCode}/preview`, { params: { mode } })
+    request.get<any>(`/form/${boCode}/preview`, { params: { mode } }),
+  // 批量保存字段元数据（按 bo_code + entity_code 联合定位）
+  batchSaveFields: (boCode: string, entityCode: string, fields: any[]) =>
+    request.post(`/bo/${boCode}/entity/${entityCode}/fields/batch`, { fields })
 }
 
 // 插件

@@ -5,7 +5,7 @@
     v-if="field.ctrl_type === 'text'"
     :model-value="modelValue"
     :placeholder="field.placeholder || `请输入${field.field_name}`"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: string) => emit('update:modelValue', v)"
@@ -15,7 +15,7 @@
     :model-value="modelValue"
     type="textarea"
     :placeholder="field.placeholder || `请输入${field.field_name}`"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: string) => emit('update:modelValue', v)"
@@ -25,7 +25,7 @@
   <el-input-number
     v-else-if="field.ctrl_type === 'number'"
     :model-value="modelValue"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :precision="field.data_precision"
     :size="size"
     controls-position="right"
@@ -39,7 +39,7 @@
     type="date"
     value-format="YYYY-MM-DD"
     :placeholder="field.placeholder || '选择日期'"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: any) => emit('update:modelValue', v)"
@@ -52,7 +52,7 @@
     type="datetime"
     value-format="YYYY-MM-DD HH:mm:ss"
     :placeholder="field.placeholder || '选择日期时间'"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: any) => emit('update:modelValue', v)"
@@ -63,7 +63,7 @@
     v-else-if="field.ctrl_type === 'select'"
     :model-value="modelValue"
     :placeholder="field.placeholder || '请选择'"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: any) => emit('update:modelValue', v)"
@@ -76,7 +76,7 @@
     v-else-if="field.ctrl_type === 'ref'"
     :model-value="modelValue"
     :placeholder="field.placeholder || `请选择${field.field_name}`"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     filterable
     clearable
@@ -96,7 +96,7 @@
   <div v-else-if="field.ctrl_type === 'amount'" class="amount-control">
     <el-input-number
       :model-value="modelValue"
-      :disabled="disabled"
+      :disabled="isDisabled"
       :precision="field.data_scale ?? 2"
       :size="size"
       controls-position="right"
@@ -109,7 +109,7 @@
   <div v-else-if="field.ctrl_type === 'qty'" class="qty-control">
     <el-input-number
       :model-value="modelValue"
-      :disabled="disabled"
+      :disabled="isDisabled"
       :precision="field.data_scale ?? 4"
       :size="size"
       controls-position="right"
@@ -122,7 +122,7 @@
   <el-checkbox
     v-else-if="field.ctrl_type === 'checkbox'"
     :model-value="!!modelValue"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     @update:model-value="(v: any) => emit('update:modelValue', v)"
   />
@@ -135,7 +135,7 @@
       :http-request="(opts: any) => mockUpload(opts, field)"
       multiple
     >
-      <el-button :size="size" :disabled="disabled" type="primary" plain>
+      <el-button :size="size" :disabled="isDisabled" type="primary" plain>
         <el-icon><Upload /></el-icon>上传附件
       </el-button>
     </el-upload>
@@ -147,7 +147,7 @@
     v-else
     :model-value="modelValue"
     :placeholder="field.placeholder || `请输入${field.field_name}`"
-    :disabled="disabled"
+    :disabled="isDisabled"
     :size="size"
     clearable
     @update:model-value="(v: string) => emit('update:modelValue', v)"
@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { PACT_STATE_LIST } from '@/utils/enum'
@@ -181,9 +181,15 @@ const emit = defineEmits<{
   'update:modelValue': [value: any]
 }>()
 
+// 合并外部 disabled 与字段元数据 is_readonly
+const isDisabled = computed(() => props.disabled || !!props.field.is_readonly)
+
 // ============ 枚举选项（select 控件）============
 function getEnumOptions(field: FormField) {
-  if (field.enum_code === 'PACT_STATE') return PACT_STATE_LIST
+  // 单据状态枚举：enum_code='PACT_STATE' 或 field_code='pact_state'（元数据可能未设 enum_code）
+  if (field.enum_code === 'PACT_STATE' || field.field_code === 'pact_state') {
+    return PACT_STATE_LIST
+  }
   // 简化：未识别的枚举返回示例选项
   return [
     { value: 'kg', label: '公斤' },
@@ -192,43 +198,83 @@ function getEnumOptions(field: FormField) {
   ]
 }
 
-// ============ 基础资料引用下拉（ref 控件）============
-// 加载 ref_bo_code 对应主数据表的实例记录，用记录 id 作为 value
+// ============ 基础资料引用下拉（ref 控件）共享缓存 ============
+// 同一个 ref_bo_code 在一个页面内可能被多个 FieldControl 使用（如多个 ref 字段），
+// 用全局缓存避免重复请求；同时记录 in-flight Promise 防止并发重复请求。
+interface RefCacheEntry {
+  options: { value: string | number; label: string }[]
+  loaded: boolean
+}
+const refCache = new Map<string, RefCacheEntry>()
+const refLoadingMap = new Map<string, Promise<void>>()
+
+async function loadRefBoOptions(refBoCode: string): Promise<RefCacheEntry> {
+  const cached = refCache.get(refBoCode)
+  if (cached?.loaded) return cached
+  if (refLoadingMap.has(refBoCode)) {
+    await refLoadingMap.get(refBoCode)
+    return refCache.get(refBoCode)!
+  }
+  const promise = (async () => {
+    try {
+      const res: any = await billApi.list(refBoCode, { pageSize: 200 })
+      const list: any[] = res?.list || res || []
+      const options = list.map(r => ({
+        value: r.id,
+        label: r.name || r.code || `#${r.id}`
+      }))
+      refCache.set(refBoCode, { options, loaded: true })
+    } catch {
+      refCache.set(refBoCode, { options: [], loaded: true })
+    } finally {
+      refLoadingMap.delete(refBoCode)
+    }
+  })()
+  refLoadingMap.set(refBoCode, promise)
+  await promise
+  return refCache.get(refBoCode)!
+}
+
+// 当前字段的本地视图（从共享缓存读取）
 const refOptions = ref<{ value: string | number; label: string }[]>([])
 const refLoading = ref(false)
-const refLoaded = ref(false)
+let cancelled = false
 
 async function loadRefOptions() {
   if (!props.field.ref_bo_code) {
     refOptions.value = []
-    refLoaded.value = true
     return
   }
   refLoading.value = true
   try {
-    // 加载 ref_bo_code 对应主数据表的记录（如 MD_ORG → sys_org 表）
-    const res: any = await billApi.list(props.field.ref_bo_code, { pageSize: 200 })
-    const list: any[] = res?.list || res || []
-    refOptions.value = list.map(r => ({
-      value: r.id,
-      label: r.name || r.code || `#${r.id}`
-    }))
-    refLoaded.value = true
-  } catch {
-    refOptions.value = []
+    const entry = await loadRefBoOptions(props.field.ref_bo_code)
+    if (cancelled) return
+    refOptions.value = entry.options
   } finally {
-    refLoading.value = false
+    if (!cancelled) refLoading.value = false
   }
 }
 
 function onRefVisibleChange(visible: boolean) {
-  if (visible && !refLoaded.value) loadRefOptions()
+  if (visible && !refOptions.value.length) loadRefOptions()
 }
 
 // ref_bo_code 变更时重新加载
 watch(() => props.field.ref_bo_code, () => {
-  refLoaded.value = false
   refOptions.value = []
+  loadRefOptions()
+})
+
+// 编辑界面有值时立即加载选项（利用共享缓存，多个同 ref_bo_code 字段只会发一次请求）
+onMounted(() => {
+  if (props.field.ctrl_type === 'ref' && props.modelValue != null && props.modelValue !== '') {
+    loadRefOptions()
+  }
+})
+
+// 组件卸载时标记取消，避免卸载后还写入 ref（防止内存泄漏）
+onBeforeUnmount(() => {
+  cancelled = true
 })
 
 // ============ amount 币别后缀（GAP-D02-001）============

@@ -524,6 +524,7 @@ CREATE TABLE meta_query_field (
   bo_code varchar(50) NOT NULL,
   field_code varchar(100) NOT NULL,
   field_name varchar(200) DEFAULT NULL,
+  entity_code varchar(50) DEFAULT NULL,
   is_common SMALLINT DEFAULT 0,
   is_advanced SMALLINT DEFAULT 0,
   operators varchar(500) DEFAULT NULL,

@@ -50,15 +50,16 @@ const emit = defineEmits<{
 
 const list = ref<BusinessObject[]>([])
 const loading = ref(false)
-const loaded = ref(false)
 
 async function loadList() {
   loading.value = true
   try {
-    const res: any = await boApi.list({ bo_type: props.boType, pageSize: 200 })
+    // 注意：query param 名称必须与后端 @RequestParam 一致（camelCase），
+    // spring.jackson.property-naming-strategy 仅作用于 JSON body，不影响 query param
+    const res: any = await boApi.list({ boType: props.boType, pageNum: 1, pageSize: 200 })
     list.value = res?.list || res || []
-    loaded.value = true
   } catch (e) {
+    console.error('[BoPicker] loadList failed:', e)
     list.value = []
   } finally {
     loading.value = false
@@ -66,7 +67,7 @@ async function loadList() {
 }
 
 function onVisibleChange(visible: boolean) {
-  if (visible && !loaded.value) loadList()
+  if (visible && list.value.length === 0) loadList()
 }
 
 function onChange(val: string) {
@@ -91,7 +92,7 @@ function boTypeTag(t: BoType): 'primary' | 'success' | 'warning' | 'info' {
 }
 
 watch(() => props.boType, () => {
-  loaded.value = false
+  list.value = []
   loadList()
 })
 

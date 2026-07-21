@@ -77,36 +77,52 @@ public class FieldController {
         }
         Map<String, Object> map = (Map<String, Object>) item;
         MetaFormField field = new MetaFormField();
-        field.setBoCode((String) map.get("boCode"));
-        field.setEntityCode((String) map.get("entityCode"));
-        field.setFieldCode((String) map.get("fieldCode"));
-        field.setFieldName((String) map.get("fieldName"));
-        field.setFieldType((String) map.get("fieldType"));
-        field.setCtrlType((String) map.get("ctrlType"));
-        field.setDataType((String) map.get("dataType"));
-        field.setDataLength(toInt(map.get("dataLength")));
-        field.setDataPrecision(toInt(map.get("dataPrecision")));
-        field.setDataScale(toInt(map.get("dataScale")));
-        field.setIsRequired(toInt(map.get("isRequired")));
-        field.setIsReadonly(toInt(map.get("isReadonly")));
-        field.setIsHidden(toInt(map.get("isHidden")));
-        field.setIsSystem(toInt(map.get("isSystem")));
-        field.setDefaultValue((String) map.get("defaultValue"));
-        field.setValidateRule((String) map.get("validateRule"));
-        field.setRefBoCode((String) map.get("refBoCode"));
-        field.setEnumCode((String) map.get("enumCode"));
-        field.setFormula((String) map.get("formula"));
-        field.setSummaryTo((String) map.get("summaryTo"));
-        field.setGroupName((String) map.get("groupName"));
-        field.setColWidth(toInt(map.get("colWidth")));
-        field.setSortIndex(toInt(map.get("sortIndex")));
-        field.setRemark((String) map.get("remark"));
+        // 兼容 snake_case / camelCase 键名（前端 toSnakeKeys 后发送 snake_case）
+        field.setBoCode(str(map, "bo_code", "boCode"));
+        field.setEntityCode(str(map, "entity_code", "entityCode"));
+        field.setFieldCode(str(map, "field_code", "fieldCode"));
+        field.setFieldName(str(map, "field_name", "fieldName"));
+        field.setFieldType(str(map, "field_type", "fieldType"));
+        field.setCtrlType(str(map, "ctrl_type", "ctrlType"));
+        field.setDataType(str(map, "data_type", "dataType"));
+        field.setDataLength(toInt(first(map, "data_length", "dataLength")));
+        field.setDataPrecision(toInt(first(map, "data_precision", "dataPrecision")));
+        field.setDataScale(toInt(first(map, "data_scale", "dataScale")));
+        field.setIsRequired(toInt(first(map, "is_required", "isRequired")));
+        field.setIsReadonly(toInt(first(map, "is_readonly", "isReadonly")));
+        field.setIsHidden(toInt(first(map, "is_hidden", "isHidden")));
+        field.setIsSystem(toInt(first(map, "is_system", "isSystem")));
+        field.setDefaultValue(str(map, "default_value", "defaultValue"));
+        field.setValidateRule(str(map, "validate_rule", "validateRule"));
+        field.setRefBoCode(str(map, "ref_bo_code", "refBoCode"));
+        field.setEnumCode(str(map, "enum_code", "enumCode"));
+        field.setFormula(str(map, "formula", "formula"));
+        field.setSummaryTo(str(map, "summary_to", "summaryTo"));
+        field.setGroupName(str(map, "group_name", "groupName"));
+        field.setColWidth(toInt(first(map, "col_width", "colWidth")));
+        field.setSortIndex(toInt(first(map, "sort_index", "sortIndex")));
+        field.setRemark(str(map, "remark", "remark"));
         return field;
+    }
+
+    private String str(Map<String, Object> map, String snake, String camel) {
+        Object v = map.get(snake);
+        if (v == null) v = map.get(camel);
+        return v == null ? null : v.toString();
+    }
+
+    private Object first(Map<String, Object> map, String snake, String camel) {
+        Object v = map.get(snake);
+        return v != null ? v : map.get(camel);
     }
 
     private Integer toInt(Object v) {
         if (v == null) {
             return null;
+        }
+        // 处理前端 el-switch 返回的 Boolean（true/false）
+        if (v instanceof Boolean) {
+            return ((Boolean) v) ? 1 : 0;
         }
         if (v instanceof Number) {
             return ((Number) v).intValue();

@@ -1,6 +1,7 @@
 package com.eerp.bos.operation.service;
 
 import com.eerp.bos.bill.BillDataAccessor;
+import com.eerp.bos.code.CodeGenerateService;
 import com.eerp.common.id.SnowflakeIdGenerator;
 import com.eerp.meta.bo.vo.FormMetaVO;
 import com.eerp.meta.cache.FormMetaCache;
@@ -54,6 +55,9 @@ public class GenericOperationService extends AbstractOperationService {
     @Autowired
     private SnowflakeIdGenerator snowflakeIdGenerator;
 
+    @Autowired
+    private CodeGenerateService codeGenerateService;
+
     // ==================== 抽象钩子实现 ====================
 
     @Override
@@ -67,9 +71,28 @@ public class GenericOperationService extends AbstractOperationService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected Long doSave(OperationContext ctx) {
         String boCode = ctx.getBoCode();
         Map<String, Object> billData = ctx.getBillData();
+
+        // 生成单据编码：save 操作（非 draft 暂存）且 main.code 为空时，按编码规则生成
+        // 对齐设计文档 02 §6.1（save 流转 post_action=生成编码）
+        if (!"draft".equals(ctx.getOperation())) {
+            Map<String, Object> mainData = (Map<String, Object>) billData.getOrDefault("main", new HashMap<>());
+            Object codeVal = mainData.get("code");
+            boolean codeEmpty = codeVal == null || codeVal.toString().trim().isEmpty();
+            if (codeEmpty) {
+                try {
+                    String code = codeGenerateService.generateCode(boCode);
+                    mainData.put("code", code);
+                } catch (Exception e) {
+                    // 编码规则未配置或生成失败时不阻断保存（编码可后续补录）
+                    // 仅记日志，避免因编码规则配置缺失导致单据无法保存
+                }
+            }
+        }
+
         Long billId = billDataAccessor.saveBill(boCode, billData);
 
         // 更新状态字段（draft→0 暂存，save→1 已创建）

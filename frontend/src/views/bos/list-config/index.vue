@@ -52,6 +52,13 @@
             </el-table-column>
             <el-table-column prop="field_code" label="字段编码" width="140" show-overflow-tooltip />
             <el-table-column prop="field_name" label="字段名称" width="140" show-overflow-tooltip />
+            <el-table-column prop="entity_code" label="所属实体" width="130" show-overflow-tooltip>
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain" :type="entityTagType(row.entity_code)">
+                  {{ entityNameMap[row.entity_code] || row.entity_code || '主表' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="ctrl_type" label="控件类型" width="110">
               <template #default="{ row }">
                 <el-tag size="small" effect="plain">{{ controlLabel(row.ctrl_type) }}</el-tag>
@@ -121,6 +128,13 @@
           >
             <el-table-column prop="field_code" label="字段编码" width="140" show-overflow-tooltip />
             <el-table-column prop="field_name" label="字段名称" width="140" show-overflow-tooltip />
+            <el-table-column prop="entity_code" label="所属实体" width="130" show-overflow-tooltip>
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain" :type="entityTagType(row.entity_code)">
+                  {{ entityNameMap[row.entity_code] || row.entity_code || '主表' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="ctrl_type" label="控件类型" width="110">
               <template #default="{ row }">
                 <el-tag size="small" effect="plain">{{ controlLabel(row.ctrl_type) }}</el-tag>
@@ -165,31 +179,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Check, InfoFilled, Rank } from '@element-plus/icons-vue'
 import { useDraggable } from 'vue-draggable-plus'
 import BoPicker from '@/components/BoPicker/index.vue'
 import { listConfigApi } from '@/api/list'
+import { entityApi } from '@/api/bo'
 import { CONTROL_TYPE_OPTIONS, QUERY_OPERATORS } from '@/utils/enum'
-import type { ListColumn, QueryField } from '@/types/bo'
+import type { ListColumn, QueryField, FormEntity } from '@/types/bo'
 
 const boCode = ref('')
 const activeTab = ref<'columns' | 'query'>('columns')
 
 const columns = ref<ListColumn[]>([])
 const queryFields = ref<QueryField[]>([])
+const entities = ref<FormEntity[]>([])
 const loadingColumns = ref(false)
 const loadingQuery = ref(false)
+
+/** entity_code → 实体名称映射（如 sal_int_cont → "单据头"，sal_int_cont_goods → "明细"） */
+const entityNameMap = computed(() => {
+  const m: Record<string, string> = {}
+  for (const e of entities.value) {
+    let label = e.entity_name || e.entity_code
+    if (e.entity_type === 'main' || e.entity_level === 0) label = `主表-${label}`
+    else if (e.entity_type === 'sub' || e.entity_level === 1) label = `明细-${label}`
+    else label = `孙表-${label}`
+    m[e.entity_code] = label
+  }
+  return m
+})
+
+/** 根据 entity_code 返回 tag 类型（主表 primary / 子表 success / 孙表 warning） */
+function entityTagType(entityCode?: string): 'primary' | 'success' | 'warning' | 'info' {
+  if (!entityCode) return 'primary'
+  const entity = entities.value.find(e => e.entity_code === entityCode)
+  if (!entity) return 'info'
+  if (entity.entity_type === 'main' || entity.entity_level === 0) return 'primary'
+  if (entity.entity_type === 'sub' || entity.entity_level === 1) return 'success'
+  return 'warning'
+}
 
 const columnTableRef = ref<any>(null)
 const columnTbody = ref<HTMLElement | null>(null)
 let dragAttached = false
 
-useDraggable(columnTbody, columns, {
+// immediate: false 避免在 setup 阶段 columnTbody 为 null 时初始化 Sortable 抛异常
+// 改为在 attachDraggable() 中设置 columnTbody 后手动调用 start()
+const { start: startDrag } = useDraggable(columnTbody, columns, {
   handle: '.drag-handle',
   animation: 150,
   ghostClass: 'drag-ghost',
+  immediate: false,
   onEnd: () => reindexColumns()
 })
 
@@ -205,7 +247,14 @@ async function onBoChange() {
   if (!boCode.value) {
     columns.value = []
     queryFields.value = []
+    entities.value = []
     return
+  }
+  // 加载实体元数据（用于显示字段所属实体）
+  try {
+    entities.value = await entityApi.list(boCode.value)
+  } catch {
+    entities.value = []
   }
   await Promise.all([loadColumns(), loadQueryFields()])
   await nextTick()
@@ -241,8 +290,12 @@ function attachDraggable() {
   if (dragAttached) return
   nextTick(() => {
     const el = columnTableRef.value?.$el as HTMLElement | undefined
-    columnTbody.value = el?.querySelector('.el-table__body-wrapper tbody') || null
-    if (columnTbody.value) dragAttached = true
+    const tbody = el?.querySelector('.el-table__body-wrapper tbody') as HTMLElement | null
+    if (tbody) {
+      columnTbody.value = tbody
+      startDrag(tbody)
+      dragAttached = true
+    }
   })
 }
 
