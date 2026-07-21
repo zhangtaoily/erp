@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * <ul>
  *   <li>11 个 bo_code（9 个 SAL_ + 2 个 PP_）在 meta_business_object 中正确注册</li>
  *   <li>每个 bo_code 独立状态机（5 节点 + 17 流转，code=bo_code）</li>
- *   <li>meta_form_entity 实体层级（11 主 + 11 子 + 3 孙 = 25）</li>
- *   <li>meta_form_field 字段元数据（246 个关键字段）</li>
+ *   <li>meta_form_entity 实体层级（11 主 + 11 子 + 7 孙 = 29）</li>
+ *   <li>meta_form_field 字段元数据（270 个关键字段）</li>
  *   <li>销售订单 CRUD：保存 → 查询详情 → 状态流转</li>
  *   <li>含子表保存：销售订单主表 + 明细子表</li>
  *   <li>含孙表保存：销售合同主表 + 明细子表 + 配额孙表</li>
@@ -114,12 +114,12 @@ class SalIntegrationTest extends AbstractIntegrationTest {
     // ==================== 实体层级验证 ====================
 
     @Test
-    @DisplayName("销售实体注册数量正确（11 主 + 14 子/孙 = 25）")
+    @DisplayName("销售实体注册数量正确（11 主 + 18 子/孙 = 29）")
     void testFormEntityCount() {
         Integer totalCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM meta_form_entity " +
                         "WHERE bo_code LIKE 'SAL_%' OR bo_code LIKE 'PP_%'", Integer.class);
-        assertEquals(25, totalCount, "应注册 25 个销售/打样实体（11 主 + 11 子 + 3 孙）");
+        assertEquals(29, totalCount, "应注册 29 个销售/打样实体（11 主 + 11 子 + 7 孙）");
 
         Integer mainCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM meta_form_entity " +
@@ -132,15 +132,21 @@ class SalIntegrationTest extends AbstractIntegrationTest {
                         "WHERE (bo_code LIKE 'SAL_%' OR bo_code LIKE 'PP_%') AND entity_type = 'sub'",
                 Integer.class);
         assertEquals(11, subCount, "应注册 11 个子实体（孙表 entity_type=grandchild 不计入）");
+
+        Integer grandCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM meta_form_entity " +
+                        "WHERE (bo_code LIKE 'SAL_%' OR bo_code LIKE 'PP_%') AND entity_type = 'grandchild'",
+                Integer.class);
+        assertEquals(7, grandCount, "应注册 7 个孙实体（SAL_INT_CONT 2 + SAL_CONTRACT 2 + SAL_ORDER 3）");
     }
 
     @Test
-    @DisplayName("SAL_ORDER 有 3 个实体（主表 + 明细 + 工艺孙表）")
+    @DisplayName("SAL_ORDER 有 5 个实体（主表 + 明细 + 3 孙表：craft/assign/pack）")
     void testSalOrderEntityHierarchy() {
         List<Map<String, Object>> entities = jdbcTemplate.queryForList(
                 "SELECT entity_code, entity_type, entity_level, table_name, parent_entity_code, link_field " +
-                        "FROM meta_form_entity WHERE bo_code = 'SAL_ORDER' ORDER BY sort_index");
-        assertEquals(3, entities.size(), "SAL_ORDER 应有 3 个实体");
+                        "FROM meta_form_entity WHERE bo_code = 'SAL_ORDER' ORDER BY sort_index, entity_code");
+        assertEquals(5, entities.size(), "SAL_ORDER 应有 5 个实体");
 
         // 主表
         Map<String, Object> main = entities.get(0);
@@ -155,25 +161,91 @@ class SalIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, ((Number) sub.get("entity_level")).intValue());
         assertEquals("order_id", sub.get("link_field"));
 
-        // 孙表
-        Map<String, Object> grand = entities.get(2);
-        assertEquals("craft", grand.get("entity_code"));
-        assertEquals("grandchild", grand.get("entity_type"));
-        assertEquals(2, ((Number) grand.get("entity_level")).intValue());
-        assertEquals("goods", grand.get("parent_entity_code"));
-        assertEquals("order_goods_id", grand.get("link_field"));
+        // 孙表：assign / craft / pack（按 entity_code 字母序）
+        Map<String, Object> assign = entities.get(2);
+        assertEquals("assign", assign.get("entity_code"));
+        assertEquals("grandchild", assign.get("entity_type"));
+        assertEquals("sal_order_goods_assign", assign.get("table_name"));
+
+        Map<String, Object> craft = entities.get(3);
+        assertEquals("craft", craft.get("entity_code"));
+        assertEquals("grandchild", craft.get("entity_type"));
+        assertEquals("sal_order_goods_craft", craft.get("table_name"));
+
+        Map<String, Object> pack = entities.get(4);
+        assertEquals("pack", pack.get("entity_code"));
+        assertEquals("grandchild", pack.get("entity_type"));
+        assertEquals("sal_order_goods_pack", pack.get("table_name"));
+    }
+
+    @Test
+    @DisplayName("SAL_INT_CONT 有 4 个实体（主表 + 明细 + 2 孙表：assign/craft）")
+    void testSalIntContEntityHierarchy() {
+        List<Map<String, Object>> entities = jdbcTemplate.queryForList(
+                "SELECT entity_code, entity_type, entity_level, table_name, parent_entity_code, link_field " +
+                        "FROM meta_form_entity WHERE bo_code = 'SAL_INT_CONT' ORDER BY sort_index, entity_code");
+        assertEquals(4, entities.size(), "SAL_INT_CONT 应有 4 个实体");
+
+        // 主表
+        assertEquals("sal_int_cont", entities.get(0).get("entity_code"));
+        assertEquals("main", entities.get(0).get("entity_type"));
+
+        // 子表
+        assertEquals("goods", entities.get(1).get("entity_code"));
+        assertEquals("sub", entities.get(1).get("entity_type"));
+
+        // 孙表 assign（指定用料）
+        Map<String, Object> assign = entities.get(2);
+        assertEquals("assign", assign.get("entity_code"));
+        assertEquals("grandchild", assign.get("entity_type"));
+        assertEquals("sal_int_cont_goods_assign", assign.get("table_name"));
+
+        // 孙表 craft（特殊工艺）
+        Map<String, Object> craft = entities.get(3);
+        assertEquals("craft", craft.get("entity_code"));
+        assertEquals("grandchild", craft.get("entity_type"));
+        assertEquals("sal_int_cont_goods_craft", craft.get("table_name"));
+    }
+
+    @Test
+    @DisplayName("SAL_CONTRACT 有 4 个实体（主表 + 明细 + 2 孙表：assign/craft）")
+    void testSalContractEntityHierarchy() {
+        List<Map<String, Object>> entities = jdbcTemplate.queryForList(
+                "SELECT entity_code, entity_type, entity_level, table_name, parent_entity_code, link_field " +
+                        "FROM meta_form_entity WHERE bo_code = 'SAL_CONTRACT' ORDER BY sort_index, entity_code");
+        assertEquals(4, entities.size(), "SAL_CONTRACT 应有 4 个实体");
+
+        // 主表
+        assertEquals("sal_cont", entities.get(0).get("entity_code"));
+        assertEquals("main", entities.get(0).get("entity_type"));
+
+        // 子表
+        assertEquals("goods", entities.get(1).get("entity_code"));
+        assertEquals("sub", entities.get(1).get("entity_type"));
+
+        // 孙表 assign（指定用料）
+        Map<String, Object> assign = entities.get(2);
+        assertEquals("assign", assign.get("entity_code"));
+        assertEquals("grandchild", assign.get("entity_type"));
+        assertEquals("sal_cont_goods_assign", assign.get("table_name"));
+
+        // 孙表 craft（特殊工艺）
+        Map<String, Object> craft = entities.get(3);
+        assertEquals("craft", craft.get("entity_code"));
+        assertEquals("grandchild", craft.get("entity_type"));
+        assertEquals("sal_cont_goods_craft", craft.get("table_name"));
     }
 
     // ==================== 字段元数据验证 ====================
 
     @Test
-    @DisplayName("销售/打样字段元数据已注册（>= 200 个）")
+    @DisplayName("销售/打样字段元数据已注册（>= 250 个）")
     void testFormFieldMetadataExists() {
         Integer fieldCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM meta_form_field " +
                         "WHERE bo_code LIKE 'SAL_%' OR bo_code LIKE 'PP_%'", Integer.class);
         assertNotNull(fieldCount);
-        assertTrue(fieldCount >= 200, "应至少注册 200 个字段元数据，实际: " + fieldCount);
+        assertTrue(fieldCount >= 250, "应至少注册 250 个字段元数据，实际: " + fieldCount);
     }
 
     @Test

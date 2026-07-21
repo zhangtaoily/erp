@@ -13,8 +13,8 @@
 --   meta_state_machine    170100-170110   (11 行，每 bo_code 一台，code=bo_code)
 --   meta_state_node       170200-170254   (11×5=55 行)
 --   meta_state_transition 170300-170486   (11×17=187 行)
---   meta_form_entity      170500-170524   (11 主 + 11 子 + 3 孙 = 25 行)
---   meta_form_field       210300-210545   (246 行)
+--   meta_form_entity      170500-170528   (11 主 + 11 子 + 7 孙 = 29 行)
+--   meta_form_field       210300-210569   (270 行)
 -- 销售单据约定：bo_type='business', is_stateful=1, is_pushable=1,
 --             is_printable=1, pk_strategy='snowflake', main_key='id', status=1
 -- 状态机复制：每 bo_code 复制 STD_5STATE（machine_id=100）的 5 节点
@@ -388,7 +388,7 @@ REPLACE INTO meta_state_transition (id, machine_id, from_state, to_state, action
 
 
 -- ============================================================
--- 5. 表单实体层级（meta_form_entity）—— 11 主 + 11 子 + 3 孙 = 25 行
+-- 5. 表单实体层级（meta_form_entity）—— 11 主 + 11 子 + 7 孙 = 29 行
 -- ============================================================
 
 -- 5.1 主实体（entity_type='main', entity_level=0）—— 11 行
@@ -439,21 +439,29 @@ VALUES (170522, 'PP_NOTICE',           'detail', '打样通知明细', 'sub', 1,
 REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
 VALUES (170524, 'PP_RECORD',           'detail', '打样记录明细', 'sub', 1, 'pp_record_detail',          'pp_record',           'record_id',     2);
 
--- 5.3 孙实体（entity_type='grandchild', entity_level=2）—— 3 行
+-- 5.3 孙实体（entity_type='grandchild', entity_level=2）—— 7 行
 REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
 VALUES (170502, 'SAL_INT_CONT', 'assign', '意向合同指定用料', 'grandchild', 2, 'sal_int_cont_goods_assign', 'goods', 'int_cont_goods_id', 3);
 REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
+VALUES (170525, 'SAL_INT_CONT', 'craft',  '意向合同特殊工艺', 'grandchild', 2, 'sal_int_cont_goods_craft', 'goods', 'int_cont_goods_id', 3);
+REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
 VALUES (170507, 'SAL_CONTRACT', 'assign', '销售合同指定用料', 'grandchild', 2, 'sal_cont_goods_assign', 'goods', 'cont_goods_id', 3);
 REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
-VALUES (170510, 'SAL_ORDER', 'craft', '销售订单特殊工艺', 'grandchild', 2, 'sal_order_goods_craft', 'goods', 'order_goods_id', 3);
+VALUES (170526, 'SAL_CONTRACT', 'craft',  '销售合同特殊工艺', 'grandchild', 2, 'sal_cont_goods_craft', 'goods', 'cont_goods_id', 3);
+REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
+VALUES (170510, 'SAL_ORDER', 'craft',  '销售订单特殊工艺', 'grandchild', 2, 'sal_order_goods_craft', 'goods', 'order_goods_id', 3);
+REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
+VALUES (170527, 'SAL_ORDER', 'assign', '销售订单指定用料', 'grandchild', 2, 'sal_order_goods_assign', 'goods', 'order_goods_id', 3);
+REPLACE INTO meta_form_entity (id, bo_code, entity_code, entity_name, entity_type, entity_level, table_name, parent_entity_code, link_field, sort_index)
+VALUES (170528, 'SAL_ORDER', 'pack',   '销售订单打印标签', 'grandchild', 2, 'sal_order_goods_pack',   'goods', 'order_goods_id', 3);
 
 
 -- ============================================================
--- 6. 表单字段元数据（meta_form_field）—— 246 行
+-- 6. 表单字段元数据（meta_form_field）—— 270 行
 --    仅注册关键字段（编码/日期/状态 + 客户/组织/业务员/仓库外键 +
 --    金额/数量 + is_closed/is_cancel + 备注 + 审计字段 + 明细关键字段）
 --    字段类型：text/number/date/enum/ref/qty/amount/bool
---    ID 区间 210300-210545
+--    ID 区间 210300-210569
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -490,6 +498,12 @@ REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, 
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210325, 'SAL_INT_CONT', 'assign', 'qty',              '数量',     'qty',    'qty',      1, 0, 4, '配额信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210326, 'SAL_INT_CONT', 'assign', 'price',            '单价',     'amount', 'amount',   0, 0, 5, '配额信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210327, 'SAL_INT_CONT', 'assign', 'remark',           '备注',     'text',   'textarea', 0, 0, 6, '配额信息');
+-- 孙表 sal_int_cont_goods_craft / craft（5 字段）
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210546, 'SAL_INT_CONT', 'craft', 'sort_index',       '行号',     'number', 'number',   0, 0, 1, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210547, 'SAL_INT_CONT', 'craft', 'int_cont_goods_id','合同明细', 'number', 'number',   1, 1, 2, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210548, 'SAL_INT_CONT', 'craft', 'sp_req',           '特殊要求', 'text',   'text',     0, 0, 3, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210549, 'SAL_INT_CONT', 'craft', 'sp_price',         '特殊费用', 'amount', 'amount',   0, 0, 4, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210550, 'SAL_INT_CONT', 'craft', 'remark',           '备注',     'text',   'textarea', 0, 0, 5, '工艺信息');
 
 -- ------------------------------------------------------------
 -- 6.2 SAL_QUOTE 销售报价
@@ -553,6 +567,12 @@ REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, 
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210375, 'SAL_CONTRACT', 'assign', 'qty',           '数量',     'qty',    'qty',      1, 0, 4, '配额信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210376, 'SAL_CONTRACT', 'assign', 'price',         '单价',     'amount', 'amount',   0, 0, 5, '配额信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210377, 'SAL_CONTRACT', 'assign', 'remark',        '备注',     'text',   'textarea', 0, 0, 6, '配额信息');
+-- 孙表 sal_cont_goods_craft / craft（5 字段）
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210551, 'SAL_CONTRACT', 'craft', 'sort_index',    '行号',     'number', 'number',   0, 0, 1, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210552, 'SAL_CONTRACT', 'craft', 'cont_goods_id', '合同明细', 'number', 'number',   1, 1, 2, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210553, 'SAL_CONTRACT', 'craft', 'sp_req',         '特殊要求', 'text',   'text',     0, 0, 3, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210554, 'SAL_CONTRACT', 'craft', 'sp_price',       '特殊费用', 'amount', 'amount',   0, 0, 4, '工艺信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210555, 'SAL_CONTRACT', 'craft', 'remark',         '备注',     'text',   'textarea', 0, 0, 5, '工艺信息');
 
 -- ------------------------------------------------------------
 -- 6.4 SAL_ORDER 销售订单
@@ -587,6 +607,22 @@ REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, 
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210402, 'SAL_ORDER', 'craft', 'sp_req',         '特殊要求',   'text',   'text',     0, 0, 3, '工艺信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210403, 'SAL_ORDER', 'craft', 'sp_price',       '特殊费用',   'amount', 'amount',   0, 0, 4, '工艺信息');
 REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210404, 'SAL_ORDER', 'craft', 'remark',         '备注',       'text',   'textarea', 0, 0, 5, '工艺信息');
+-- 孙表 sal_order_goods_assign / assign（6 字段）
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210556, 'SAL_ORDER', 'assign', 'sort_index',     '行号',     'number', 'number',   0, 0, 1, '配额信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210557, 'SAL_ORDER', 'assign', 'order_goods_id', '订单明细', 'number', 'number',   1, 1, 2, '配额信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, ref_bo_code, sort_index, group_name) VALUES (210558, 'SAL_ORDER', 'assign', 'mat_id',         '物料',     'ref',    'ref',      1, 0, 'MD_MATERIAL', 3, '配额信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210559, 'SAL_ORDER', 'assign', 'qty',            '数量',     'qty',    'qty',      1, 0, 4, '配额信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210560, 'SAL_ORDER', 'assign', 'price',          '单价',     'amount', 'amount',   0, 0, 5, '配额信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210561, 'SAL_ORDER', 'assign', 'remark',         '备注',     'text',   'textarea', 0, 0, 6, '配额信息');
+-- 孙表 sal_order_goods_pack / pack（8 字段）
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210562, 'SAL_ORDER', 'pack', 'sort_index',     '行号',     'number', 'number',   0, 0, 1, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210563, 'SAL_ORDER', 'pack', 'order_goods_id', '订单明细', 'number', 'number',   1, 1, 2, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210564, 'SAL_ORDER', 'pack', 'color_no',       '色号标签', 'text',   'text',     0, 0, 3, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210565, 'SAL_ORDER', 'pack', 'color_name',     '色名标签', 'text',   'text',     0, 0, 4, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210566, 'SAL_ORDER', 'pack', 'cust_lot_no',    '客户批次', 'text',   'text',     0, 0, 5, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210567, 'SAL_ORDER', 'pack', 'raw_mat_name',   '原料标签', 'text',   'text',     0, 0, 6, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210568, 'SAL_ORDER', 'pack', 'product_name',   '品名标签', 'text',   'text',     0, 0, 7, '标签信息');
+REPLACE INTO meta_form_field (id, bo_code, entity_code, field_code, field_name, field_type, ctrl_type, is_required, is_system, sort_index, group_name) VALUES (210569, 'SAL_ORDER', 'pack', 'remark',         '备注',     'text',   'textarea', 0, 0, 8, '标签信息');
 
 -- ------------------------------------------------------------
 -- 6.5 SAL_DELIVERY_NOTICE 发货通知

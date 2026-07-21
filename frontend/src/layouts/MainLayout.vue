@@ -10,7 +10,7 @@
         <span class="logo">E-ERP BOS 平台</span>
       </div>
       <div class="header-right">
-        <el-dropdown>
+        <el-dropdown @command="handleUserCommand">
           <span class="user-info">
             <el-avatar :size="26" style="background:#fff;color:#1564ff">A</el-avatar>
             <span class="ml-8">管理员</span>
@@ -18,9 +18,9 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item>切换组织</el-dropdown-item>
-              <el-dropdown-item>个人设置</el-dropdown-item>
-              <el-dropdown-item divided>退出登录</el-dropdown-item>
+              <el-dropdown-item command="switch-org">切换组织</el-dropdown-item>
+              <el-dropdown-item command="profile">个人设置</el-dropdown-item>
+              <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -88,6 +88,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { menuConfig } from '@/config/menu'
 import { menuApi, type SysMenu } from '@/api/perm'
 
@@ -166,6 +167,28 @@ function closeTag(tag: Tag) {
       const last = tags.value[tags.value.length - 1]
       router.push(last.path)
     }
+  }
+}
+
+// 右上角下拉菜单命令处理
+async function handleUserCommand(command: string) {
+  if (command === 'logout') {
+    try {
+      await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    } catch {
+      return
+    }
+    localStorage.removeItem('token')
+    router.push('/login')
+    ElMessage.success('已退出登录')
+  } else if (command === 'switch-org') {
+    ElMessage.info('切换组织功能待实现')
+  } else if (command === 'profile') {
+    ElMessage.info('个人设置功能待实现')
   }
 }
 </script>

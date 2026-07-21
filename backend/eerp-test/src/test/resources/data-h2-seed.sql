@@ -211,14 +211,14 @@ INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon
   (3503, 'BOS_WRITEBACK_RULE', '反写规则配置',   3005, 'menu', '/bos/writeback-rule', NULL, 3, 1, 1);
 
 -- 3.7 权限管理子菜单
-INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
-  (3601, 'SYS_ORG',             '组织架构',         3006, 'menu', '/sys/org',             NULL, 1, 1, 1),
-  (3602, 'SYS_USER',            '用户管理',         3006, 'menu', '/sys/user',            NULL, 2, 1, 1),
-  (3603, 'SYS_ROLE',            '角色管理',         3006, 'menu', '/sys/role',            NULL, 3, 1, 1),
-  (3604, 'SYS_DEPT',            '部门管理',         3006, 'menu', '/sys/dept',            NULL, 4, 1, 1),
-  (3605, 'SYS_DATA_PERMISSION', '数据权限（行级）', 3006, 'menu', '/sys/data-permission', NULL, 5, 1, 1),
-  (3606, 'SYS_FIELD_PERMISSION','字段权限（列级）', 3006, 'menu', '/sys/field-permission',NULL, 6, 1, 1),
-  (3607, 'SYS_SECURITY',        '登录安全策略',     3006, 'menu', '/sys/security',        NULL, 7, 1, 1),
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status, remark) VALUES
+  (3601, 'SYS_ORG',             '组织架构',         3006, 'menu', '/sys/org',             NULL, 1, 1, 1, NULL),
+  (3602, 'SYS_USER',            '用户管理',         3006, 'menu', '/sys/user',            NULL, 2, 1, 1, NULL),
+  (3603, 'SYS_ROLE',            '角色管理',         3006, 'menu', '/sys/role',            NULL, 3, 1, 1, NULL),
+  (3604, 'SYS_DEPT',            '部门管理',         3006, 'menu', '/sys/dept',            NULL, 4, 1, 1, NULL),
+  (3605, 'SYS_DATA_PERMISSION', '数据权限（行级）', 3006, 'menu', '/sys/data-permission', NULL, 5, 1, 1, NULL),
+  (3606, 'SYS_FIELD_PERMISSION','字段权限（列级）', 3006, 'menu', '/sys/field-permission',NULL, 6, 1, 1, NULL),
+  (3607, 'SYS_SECURITY',        '登录安全策略',     3006, 'menu', '/sys/security',        NULL, 7, 1, 1, NULL),
   (3608, 'SYS_MENU',            '菜单管理',         3006, 'menu', '/sys/menu',            NULL, 8, 1, 1, '系统菜单 CRUD');
 
 -- 3.8 集成与附件子菜单
@@ -233,3 +233,134 @@ INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon
 -- 3.9 单据运行时子菜单
 INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
   (3801, 'BILL_SAL_ORDER', '销售订单列表', 3008, 'menu', '/bill/sal_order', NULL, 1, 1, 1);
+
+-- ============================================================
+-- 3.10 业务模块一级目录（9 个业务模块）
+--     采购管理 / 销售管理 / 供应链 / 财务会计 / 生产制造 /
+--     税务管理 / 库存管理 / 基础数据 / 消息与通知
+-- ============================================================
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status, remark) VALUES
+  (3009, 'MOD_PUR',     '采购管理',   0, 'directory', NULL, 'ShoppingCart', 11, 1, 1, '采购业务单据'),
+  (3010, 'MOD_SAL',     '销售管理',   0, 'directory', NULL, 'Sell',         12, 1, 1, '销售业务单据'),
+  (3011, 'MOD_SCM',     '供应链',     0, 'directory', NULL, 'Connection',   13, 1, 1, '供应链管理'),
+  (3012, 'MOD_FIN',     '财务会计',   0, 'directory', NULL, 'Money',        14, 1, 1, '财务会计'),
+  (3013, 'MOD_MFG',     '生产制造',   0, 'directory', NULL, 'Tools',        15, 1, 1, '生产制造'),
+  (3014, 'MOD_TAX',     '税务管理',   0, 'directory', NULL, 'Tickets',      16, 1, 1, '税务管理'),
+  (3015, 'MOD_INV',     '库存管理',   0, 'directory', NULL, 'Box',          17, 1, 1, '库存管理'),
+  (3016, 'MOD_MASTER',  '基础数据',   0, 'directory', NULL, 'Files',        18, 1, 1, '基础主数据'),
+  (3017, 'MOD_SYSMSG',  '消息与通知', 0, 'directory', NULL, 'Bell',         19, 1, 1, '系统消息与通知');
+
+-- 3.11 采购管理子菜单（7 项 PUR_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (3901, 'PUR_APPLY',          '采购申请', 3009, 'menu', '/bill/pur_apply',          NULL, 1, 1, 1),
+  (3902, 'PUR_CONT',           '采购合同', 3009, 'menu', '/bill/pur_cont',           NULL, 2, 1, 1),
+  (3903, 'PUR_ORDER',          '采购订单', 3009, 'menu', '/bill/pur_order',          NULL, 3, 1, 1),
+  (3904, 'PUR_RECEIVE_NOTICE', '收料通知', 3009, 'menu', '/bill/pur_receive_notice', NULL, 4, 1, 1),
+  (3905, 'PUR_IN_STOCK',       '采购入库', 3009, 'menu', '/bill/pur_in_stock',       NULL, 5, 1, 1),
+  (3906, 'PUR_RETURN',         '采购退料', 3009, 'menu', '/bill/pur_return',         NULL, 6, 1, 1),
+  (3907, 'PUR_INVOICE',        '采购发票', 3009, 'menu', '/bill/pur_invoice',        NULL, 7, 1, 1);
+
+-- 3.12 销售管理子菜单（11 项 SAL_* / PP_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4001, 'SAL_INT_CONT',       '意向合同',   3010, 'menu', '/bill/sal_int_cont',       NULL, 1,  1, 1),
+  (4002, 'SAL_QUOTE',          '销售报价',   3010, 'menu', '/bill/sal_quote',          NULL, 2,  1, 1),
+  (4003, 'SAL_CONTRACT',       '销售合同',   3010, 'menu', '/bill/sal_contract',       NULL, 3,  1, 1),
+  (4004, 'SAL_ORDER',          '销售订单',   3010, 'menu', '/bill/sal_order',          NULL, 4,  1, 1),
+  (4005, 'SAL_DELIVERY_NOTICE','发货通知',   3010, 'menu', '/bill/sal_delivery_notice',NULL, 5,  1, 1),
+  (4006, 'SAL_OUT_STOCK',      '销售出库',   3010, 'menu', '/bill/sal_out_stock',      NULL, 6,  1, 1),
+  (4007, 'SAL_RETURN',         '销售退货',   3010, 'menu', '/bill/sal_return',         NULL, 7,  1, 1),
+  (4008, 'SAL_RETURN_NOTICE',  '退货通知',   3010, 'menu', '/bill/sal_return_notice',  NULL, 8,  1, 1),
+  (4009, 'SAL_INVOICE',        '销售发票',   3010, 'menu', '/bill/sal_invoice',        NULL, 9,  1, 1),
+  (4010, 'PP_NOTICE',          '打样通知',   3010, 'menu', '/bill/pp_notice',          NULL, 10, 1, 1),
+  (4011, 'PP_RECORD',          '打样记录',   3010, 'menu', '/bill/pp_record',          NULL, 11, 1, 1);
+
+-- 3.13 供应链子菜单（暂无对应 BO，预留目录）
+-- 无子菜单，后续按需补充物流/供应商评估等
+
+-- 3.14 财务会计子菜单（14 项 FIN_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4201, 'FIN_EST_AP',        '暂估应付',   3012, 'menu', '/bill/fin_est_ap',        NULL, 1,  1, 1),
+  (4202, 'FIN_AR',            '应收单',     3012, 'menu', '/bill/fin_ar',            NULL, 2,  1, 1),
+  (4203, 'FIN_AP',            '应付单',     3012, 'menu', '/bill/fin_ap',            NULL, 3,  1, 1),
+  (4204, 'FIN_RECEIPT',       '收款单',     3012, 'menu', '/bill/fin_receipt',       NULL, 4,  1, 1),
+  (4205, 'FIN_PAYMENT',       '付款单',     3012, 'menu', '/bill/fin_payment',       NULL, 5,  1, 1),
+  (4206, 'FIN_WRITEOFF',      '核销单',     3012, 'menu', '/bill/fin_writeoff',      NULL, 6,  1, 1),
+  (4207, 'FIN_CUST_RECEIPT',  '客户回款',   3012, 'menu', '/bill/fin_cust_receipt',  NULL, 7,  1, 1),
+  (4208, 'FIN_ACCOUNT',       '会计科目',   3012, 'menu', '/bill/fin_account',       NULL, 8,  1, 1),
+  (4209, 'FIN_PERIOD',        '会计期间',   3012, 'menu', '/bill/fin_period',        NULL, 9,  1, 1),
+  (4210, 'FIN_VOUCHER_TPL',   '凭证模板',   3012, 'menu', '/bill/fin_voucher_tpl',   NULL, 10, 1, 1),
+  (4211, 'FIN_VOUCHER',       '凭证',       3012, 'menu', '/bill/fin_voucher',       NULL, 11, 1, 1),
+  (4212, 'FIN_COST_COLLECT',  '成本归集',   3012, 'menu', '/bill/fin_cost_collect',  NULL, 12, 1, 1),
+  (4213, 'FIN_COST_POOL',     '制造费用池', 3012, 'menu', '/bill/fin_cost_pool',     NULL, 13, 1, 1),
+  (4214, 'FIN_COST_VARIANCE', '成本差异',   3012, 'menu', '/bill/fin_cost_variance', NULL, 14, 1, 1);
+
+-- 3.15 生产制造子菜单（8 项 MFG_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4301, 'MFG_BOM',       'BOM配方',    3013, 'menu', '/bill/mfg_bom',       NULL, 1, 1, 1),
+  (4302, 'MFG_ROUTE',     '工艺路线',   3013, 'menu', '/bill/mfg_route',     NULL, 2, 1, 1),
+  (4303, 'MFG_NOTICE',    '生产通知单', 3013, 'menu', '/bill/mfg_notice',    NULL, 3, 1, 1),
+  (4304, 'MFG_ORDER',     '生产订单',   3013, 'menu', '/bill/mfg_order',     NULL, 4, 1, 1),
+  (4305, 'MFG_PICK',      '领料单',     3013, 'menu', '/bill/mfg_pick',      NULL, 5, 1, 1),
+  (4306, 'MFG_IN_STOCK',  '生产入库',   3013, 'menu', '/bill/mfg_in_stock',  NULL, 6, 1, 1),
+  (4307, 'MFG_MRP_PLAN',  'MRP计划',    3013, 'menu', '/bill/mfg_mrp_plan',  NULL, 7, 1, 1),
+  (4308, 'MFG_OUTSOURCE', '外协订单',   3013, 'menu', '/bill/mfg_outsource', NULL, 8, 1, 1);
+
+-- 3.16 税务管理子菜单（3 项 TAX_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4401, 'TAX_RATE',    '税率配置', 3014, 'menu', '/bill/tax_rate',    NULL, 1, 1, 1),
+  (4402, 'TAX_PROVIDE', '税务计提', 3014, 'menu', '/bill/tax_provide', NULL, 2, 1, 1),
+  (4403, 'TAX_DECLARE', '纳税申报', 3014, 'menu', '/bill/tax_declare', NULL, 3, 1, 1);
+
+-- 3.17 库存管理子菜单（9 项 INV_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4501, 'INV_STOCK',      '即时库存',   3015, 'menu', '/bill/inv_stock',      NULL, 1, 1, 1),
+  (4502, 'INV_BATCH',      '批次台账',   3015, 'menu', '/bill/inv_batch',      NULL, 2, 1, 1),
+  (4503, 'INV_STOCKTAKE',  '盘点单',     3015, 'menu', '/bill/inv_stocktake',  NULL, 3, 1, 1),
+  (4504, 'INV_TRANSFER',   '调拨单',     3015, 'menu', '/bill/inv_transfer',   NULL, 4, 1, 1),
+  (4505, 'INV_FORM_CONV',  '形态转换',   3015, 'menu', '/bill/inv_form_conv',  NULL, 5, 1, 1),
+  (4506, 'INV_OTHER_IN',   '其他入库',   3015, 'menu', '/bill/inv_other_in',   NULL, 6, 1, 1),
+  (4507, 'INV_OTHER_OUT',  '其他出库',   3015, 'menu', '/bill/inv_other_out',  NULL, 7, 1, 1),
+  (4508, 'INV_LOCK',       '锁库单',     3015, 'menu', '/bill/inv_lock',       NULL, 8, 1, 1),
+  (4509, 'INV_LOCK_APPLY', '锁库申请',   3015, 'menu', '/bill/inv_lock_apply', NULL, 9, 1, 1);
+
+-- 3.18 基础数据子菜单（29 项 MD_*）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4601, 'MD_ORG',                 '组织',         3016, 'menu', '/master/md_org',                 NULL, 1,  1, 1),
+  (4602, 'MD_DEPT',                '部门',         3016, 'menu', '/master/md_dept',                NULL, 2,  1, 1),
+  (4603, 'MD_EMPLOYEE',            '员工',         3016, 'menu', '/master/md_employee',            NULL, 3,  1, 1),
+  (4604, 'MD_SALER',               '业务员',       3016, 'menu', '/master/md_saler',               NULL, 4,  1, 1),
+  (4605, 'MD_MERCHANDISER',        '跟单员',       3016, 'menu', '/master/md_merchandiser',        NULL, 5,  1, 1),
+  (4606, 'MD_CUSTOMER',            '客户',         3016, 'menu', '/master/md_customer',            NULL, 6,  1, 1),
+  (4607, 'MD_SUPPLIER',            '供应商',       3016, 'menu', '/master/md_supplier',            NULL, 7,  1, 1),
+  (4608, 'MD_MATERIAL',            '物料',         3016, 'menu', '/master/md_material',            NULL, 8,  1, 1),
+  (4609, 'MD_MATERIAL_GROUP',      '物料分组',     3016, 'menu', '/master/md_material_group',      NULL, 9,  1, 1),
+  (4610, 'MD_RAW_MATERIAL',        '原料',         3016, 'menu', '/master/md_raw_material',        NULL, 10, 1, 1),
+  (4611, 'MD_RAW_MATERIAL_GROUP',  '原料分组',     3016, 'menu', '/master/md_raw_material_group',  NULL, 11, 1, 1),
+  (4612, 'MD_CURRENCY',            '币别',         3016, 'menu', '/master/md_currency',            NULL, 12, 1, 1),
+  (4613, 'MD_EXCHANGE_RATE',       '汇率',         3016, 'menu', '/master/md_exchange_rate',       NULL, 13, 1, 1),
+  (4614, 'MD_WAREHOUSE',           '仓库',         3016, 'menu', '/master/md_warehouse',           NULL, 14, 1, 1),
+  (4615, 'MD_BIN',                 '仓位',         3016, 'menu', '/master/md_bin',                 NULL, 15, 1, 1),
+  (4616, 'MD_UNIT',                '计量单位',     3016, 'menu', '/master/md_unit',                NULL, 16, 1, 1),
+  (4617, 'MD_BRAND',               '品牌',         3016, 'menu', '/master/md_brand',               NULL, 17, 1, 1),
+  (4618, 'MD_COLOR_SERIES',        '色系',         3016, 'menu', '/master/md_color_series',        NULL, 18, 1, 1),
+  (4619, 'MD_COMP_COLOR',          '公司色号',     3016, 'menu', '/master/md_comp_color',          NULL, 19, 1, 1),
+  (4620, 'MD_PRINT_COLOR',         '打版色号',     3016, 'menu', '/master/md_print_color',         NULL, 20, 1, 1),
+  (4621, 'MD_HL_CARD',             '集锦卡',       3016, 'menu', '/master/md_hl_card',             NULL, 21, 1, 1),
+  (4622, 'MD_TRADE_TYPE',          '贸易类型',     3016, 'menu', '/master/md_trade_type',          NULL, 22, 1, 1),
+  (4623, 'MD_PORT',                '港口',         3016, 'menu', '/master/md_port',                NULL, 23, 1, 1),
+  (4624, 'MD_SEAL',                '印章',         3016, 'menu', '/master/md_seal',                NULL, 24, 1, 1),
+  (4625, 'MD_BOX_LABEL_TPL',       '箱贴模板',     3016, 'menu', '/master/md_box_label_tpl',       NULL, 25, 1, 1),
+  (4626, 'MD_QUALITY_STD',         '质量标准',     3016, 'menu', '/master/md_quality_std',         NULL, 26, 1, 1),
+  (4627, 'MD_SETTLE_TYPE',         '结算方式',     3016, 'menu', '/master/md_settle_type',         NULL, 27, 1, 1),
+  (4628, 'MD_SPIN_FEE',            '特殊纺工费',   3016, 'menu', '/master/md_spin_fee',            NULL, 28, 1, 1),
+  (4629, 'MD_CREDIT',              '信用管理',     3016, 'menu', '/master/md_credit',              NULL, 29, 1, 1);
+
+-- 3.19 消息与通知子菜单（7 项 SYSMSG BO；SYS_IMPORT_TASK 已在集成与附件模块）
+INSERT INTO sys_menu (id, menu_code, menu_name, parent_id, menu_type, path, icon, sort_index, visible, status) VALUES
+  (4701, 'SYS_PARAM',      '系统参数',   3017, 'menu', '/master/sys_param',      NULL, 1, 1, 1),
+  (4702, 'SYS_NOTICE',     '公告',       3017, 'menu', '/master/sys_notice',     NULL, 2, 1, 1),
+  (4703, 'SYS_BACKUP',     '数据备份',   3017, 'menu', '/master/sys_backup',     NULL, 3, 1, 1),
+  (4705, 'ALERT_RULE',     '预警规则',   3017, 'menu', '/master/alert_rule',     NULL, 4, 1, 1),
+  (4706, 'ALERT_RECORD',   '预警记录',   3017, 'menu', '/master/alert_record',   NULL, 5, 1, 1),
+  (4707, 'INBOX_MSG',      '站内信',     3017, 'menu', '/master/inbox_msg',      NULL, 6, 1, 1),
+  (4708, 'EMAIL_LOG',      '邮件日志',   3017, 'menu', '/master/email_log',      NULL, 7, 1, 1);

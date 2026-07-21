@@ -73,7 +73,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         childWrapper.eq(SysMenu::getParentId, id);
         long childCount = count(childWrapper);
         if (childCount > 0) {
-            throw new RuntimeException("该菜单下有子菜单，请先删除子菜单");
+            throw new ServiceException("MENU_HAS_CHILDREN", "该菜单下有子菜单，请先删除子菜单");
         }
         removeById(id);
     }

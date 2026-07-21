@@ -56,7 +56,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'sys/api-auth', name: 'SysApiAuth', component: () => import('@/views/sys/api-auth/index.vue'), meta: { title: 'API 鉴权配置', group: '集成与附件' } },
       // 单据运行时
       { path: 'bill/sal_order', name: 'BillSalOrderList', component: () => import('@/views/bill/sal_order/list.vue'), meta: { title: '销售订单列表', group: '单据运行时' } },
-      { path: 'bill/sal_order/:id', name: 'BillSalOrderDetail', component: () => import('@/views/bill/sal_order/detail.vue'), meta: { title: '销售订单详情', group: '单据运行时', hidden: true } }
+      { path: 'bill/sal_order/:id', name: 'BillSalOrderDetail', component: () => import('@/views/bill/sal_order/detail.vue'), meta: { title: '销售订单详情', group: '单据运行时', hidden: true } },
+      // 业务模块动态路由：/bill/<bo_code> 统一指向占位页（具体业务页面后续逐步替换）
+      { path: 'bill/:boCode', name: 'BillRuntime', component: Placeholder, meta: { title: '单据', group: '业务模块', hidden: true } },
+      // 主数据动态路由：/master/<bo_code> 统一指向占位页
+      { path: 'master/:boCode', name: 'MasterRuntime', component: Placeholder, meta: { title: '主数据', group: '基础数据', hidden: true } }
     ]
   },
   {

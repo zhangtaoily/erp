@@ -35,6 +35,7 @@ service.interceptors.request.use(
 )
 
 // 响应拦截器 - 统一处理 {code,message,data}
+let redirecting = false
 service.interceptors.response.use(
   (response) => {
     const res = response.data
@@ -47,6 +48,16 @@ service.interceptors.response.use(
     return res
   },
   (error) => {
+    // 401/403：token 失效或未登录，清理并跳转登录页（避免重复跳转）
+    const status = error?.response?.status
+    if ((status === 401 || status === 403) && !redirecting) {
+      redirecting = true
+      localStorage.removeItem('token')
+      const current = window.location.pathname + window.location.search
+      if (!current.startsWith('/login')) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(current)
+      }
+    }
     return Promise.reject(error)
   }
 )
