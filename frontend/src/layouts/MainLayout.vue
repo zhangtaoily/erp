@@ -7,7 +7,7 @@
           <Fold v-if="!collapsed" />
           <Expand v-else />
         </el-icon>
-        <span class="logo">E-ERP BOS 平台</span>
+        <span class="logo">Meta Data Driven ERP BOS 平台</span>
       </div>
       <div class="header-right">
         <el-dropdown @command="handleUserCommand">
