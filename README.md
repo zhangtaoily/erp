@@ -14,6 +14,7 @@
 | **前端框架** | Vue 3.4 + TypeScript | Composition API |
 | **UI 组件** | Element Plus 2.7 | 按需自动导入 |
 | **构建工具** | Vite 5.3 | 开发端口 5173 |
+| **表达式引擎** | ANTLR 4.13 | 自研 bos-expr 语法（Expr.g4），支持字段引用、函数调用、三元运算 |
 | **流程图** | @antv/x6 | 状态机可视化 |
 | **代码编辑器** | Monaco Editor | 表达式编辑器 |
 
@@ -125,6 +126,33 @@ npm run dev
 | **状态机设计** | 定义状态节点与流转路径，可视化编辑 | `/bos/state-machine` |
 | **编码规则** | 配置单据号生成规则（前缀+日期+流水） | `/bos/code-rule` |
 | **按钮权限** | 按状态控制按钮显隐/可用性 | `/bos/button-availability` |
+
+### 表达式引擎（ANTLR4）
+
+系统内置自研 `bos-expr` 表达式语言，基于 ANTLR4 文法定义，用于驱动实体服务规则、插件脚本、校验表达式等场景。
+
+**语法文件**：[`Expr.g4`](file:///d:/prj/erp/backend/eerp-meta/src/main/resources/grammar/Expr.g4)
+
+**支持特性**：
+- 字段引用：`$qty`、`$goods.price`
+- 算术运算：`+ - * / %`
+- 比较运算：`> < >= <= == !=`
+- 逻辑运算：`&& || !`
+- 三元条件：`$qty > 0 ? $qty * $price : 0`
+- 函数调用：`SUM(...)`、`IF(...)`、`LOOKUP(...)` 等
+- 赋值联动：`$amount = $qty * $price`
+- 校验抛错：`error('数量不能为零')`
+
+**应用场景**：
+
+| 场景 | 说明 | 示例 |
+|------|------|------|
+| 实体服务规则 | 联动赋值、校验规则、可用性控制 | `$amount = $qty * $price` |
+| 插件脚本 | 自定义业务逻辑 | `IF($qty > 100, error('超限'), null)` |
+| 校验规则 | 字段值校验 | `$qty > 0 && $price > 0` |
+| 下推规则 | 字段映射转换 | `$out_qty = $qty - $pushed_qty` |
+
+**实现方式**：当前运行时采用手写递归下降解析器（`ExprLexer` / `ExprParser`），与 ANTLR4 文法 `Expr.g4` 保持一致。未来可激活 `antlr4-maven-plugin` 切换为 ANTLR4 代码生成方案。
 
 ### 通用单据组件
 
