@@ -1,37 +1,185 @@
-# erp
+# EERP - 企业资源计划系统
 
-#### 介绍
-erp
+基于元数据驱动的企业资源计划（ERP）系统，采用 Spring Boot + Vue 3 技术栈，实现业务对象、表单、列表、状态机等全配置化管理。
 
-#### 软件架构
-软件架构说明
+## 技术栈
 
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| **后端框架** | Spring Boot 3.2.5 | Java 17 |
+| **ORM** | MyBatis-Plus 3.5.5 | 雪花算法主键 |
+| **数据库** | MySQL 8.4 | 开发环境：192.168.0.75:3306/eerp |
+| **缓存** | Redis | 元数据缓存 |
+| **认证** | JJWT 0.12.5 | HS256 Token，24h 过期 |
+| **前端框架** | Vue 3.4 + TypeScript | Composition API |
+| **UI 组件** | Element Plus 2.7 | 按需自动导入 |
+| **构建工具** | Vite 5.3 | 开发端口 5173 |
+| **流程图** | @antv/x6 | 状态机可视化 |
+| **代码编辑器** | Monaco Editor | 表达式编辑器 |
 
-#### 安装教程
+## 项目结构
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+```
+d:\prj\erp
+├── backend/                        # 后端 Maven 多模块
+│   ├── eerp-common/               # 公共模块（BaseEntity、JWT、雪花ID）
+│   ├── eerp-meta/                 # 元数据模块（业务对象、字段、状态机等元数据CRUD）
+│   ├── eerp-plugin/               # 插件模块
+│   ├── eerp-bos/                  # BOS 业务对象服务（表单、列表、操作、状态机、下推）
+│   ├── eerp-integration/          # 集成模块（附件、API日志、工作流）
+│   ├── eerp-master/               # 基础数据模块（物料、客户、供应商等35+主数据表）
+│   ├── eerp-scm/                  # 供应链模块（预留）
+│   ├── eerp-mfg/                  # 生产制造模块（预留）
+│   ├── eerp-fin/                  # 财务会计模块（预留）
+│   ├── eerp-tax/                  # 税务管理模块（预留）
+│   ├── eerp-sys-ext/              # 系统扩展模块（预留）
+│   ├── eerp-msg/                  # 消息通知模块（预留）
+│   ├── eerp-api/                  # API 入口（Controller 层、Spring Boot 启动类）
+│   └── eerp-test/                 # 集成测试（H2 内存库）
+├── frontend/                       # Vue 3 前端
+│   └── src/
+│       ├── api/                   # 接口封装
+│       ├── components/            # 通用组件
+│       │   ├── MasterDetailEditor/ # 主从表动态编辑器
+│       │   ├── BillToolbar/        # 单据工具栏
+│       │   ├── BoPicker/           # 业务对象选择器
+│       │   ├── StateMachineGraph/  # 状态机流程图（@antv/x6）
+│       │   └── ExpressionEditor/   # 表达式编辑器（Monaco）
+│       ├── layouts/               # 布局（顶栏+侧边菜单+标签页）
+│       ├── router/                # 路由配置（动态路由 /bill/:boCode）
+│       ├── types/                 # TypeScript 类型定义
+│       ├── utils/                 # 工具函数（枚举、请求拦截器等）
+│       ├── views/
+│       │   ├── bill/runtime/      # 通用单据列表/详情（元数据驱动）
+│       │   ├── bos/               # BOS 平台管理（业务对象、表单设计器、列表配置等）
+│       │   └── master/            # 基础数据管理
+│       └── styles/                # 全局样式
+└── README.md
+```
 
-#### 使用说明
+## 快速开始
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### 环境要求
 
-#### 参与贡献
+- JDK 17+
+- Maven 3.6+
+- Node.js 18+
+- MySQL 8.4
+- Redis（可选，用于元数据缓存）
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+### 1. 数据库初始化
 
+在 MySQL 中创建数据库：
 
-#### 特技
+```sql
+CREATE DATABASE eerp DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+系统启动时会通过 `SchemaMigrationRunner` 自动执行以下迁移：
+- 补充缺失的数据库字段（如 `entity_code`、`is_readonly`）
+- 修正种子数据（如设置 `amount` 字段的 `formula`）
+
+### 2. 后端启动
+
+```bash
+cd backend
+
+# 安装依赖模块
+mvn install -DskipTests -U
+
+# 启动 API 服务
+mvn -pl eerp-api spring-boot:run
+```
+
+服务启动后访问 `http://localhost:8080`。
+
+### 3. 前端启动
+
+```bash
+cd frontend
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+```
+
+浏览器自动打开 `http://localhost:5173`，API 请求通过 Vite proxy 转发至后端 8080 端口。
+
+### 4. 登录
+
+默认测试账号由种子数据初始化，或通过 `/api/auth/login` 注册。
+
+## 核心功能
+
+### 元数据驱动
+
+系统核心设计理念是"元数据驱动"——业务对象、表单布局、列表字段、状态流转等全部通过元数据配置，无需硬编码。
+
+| 功能 | 说明 | 入口 |
+|------|------|------|
+| **业务对象管理** | 定义 BO 编码、主表、状态机开关等 | `/bos/business-object` |
+| **表单设计器** | 可视化配置主表/子表/孙表字段，设置只读/隐藏/必填/计算公式 | `/bos/form-designer` |
+| **列表配置** | 配置列表显示列、查询字段，自动 JOIN 多表 | `/bos/list-config` |
+| **状态机设计** | 定义状态节点与流转路径，可视化编辑 | `/bos/state-machine` |
+| **编码规则** | 配置单据号生成规则（前缀+日期+流水） | `/bos/code-rule` |
+| **按钮权限** | 按状态控制按钮显隐/可用性 | `/bos/button-availability` |
+
+### 通用单据组件
+
+- **GenericBillList**：动态加载列配置与查询字段，支持自动多表 JOIN、行内编辑
+- **GenericBillDetail**：动态加载表单元数据，主表/子表/孙表三段式布局，支持公式计算、汇总、联查
+
+### 业务流程
+
+- 单据状态流转：暂存 → 已创建 → 已提交 → 已审核（可驳回/撤销）
+- 下推机制：单据行可下推生成下游单据
+- 反写机制：下游审核后自动回写上游数量
+
+### 基础数据
+
+已预置纺织行业 35+ 主数据表，包括：
+物料、供应商、客户、仓库、币别、汇率、单位、品牌、色系、质量标准等。
+
+测试种子数据见 `eerp-test/src/test/resources/data-h2-master-data-seed.sql`。
+
+## 运行测试
+
+```bash
+cd backend
+
+# 运行全部集成测试（使用 H2 内存库）
+mvn -pl eerp-test test
+```
+
+## 配置说明
+
+### 环境切换
+
+- **开发环境**：`eerp-api/src/main/resources/application.yml`，连接 MySQL 192.168.0.75:3306/eerp
+- **测试环境**：`eerp-test/src/test/resources/application-test.yml`，使用 H2 MySQL 兼容模式，端口随机
+
+### 关键配置项
+
+```yaml
+# JWT
+jwt:
+  secret: <your-secret-key>   # 至少 256 位
+  expiration: 86400000        # Token 有效期（ms），默认 24h
+
+# Jackson 命名策略
+spring.jackson.property-naming-strategy: SNAKE_CASE  # 前后端统一使用 snake_case
+
+# 附件存储
+eerp.storage.type: local      # local / oss / minio
+eerp.storage.local.base-path: ./data/attachments
+```
+
+## 技术约定
+
+- 前后端统一使用 `snake_case` 字段名（Jackson `SNAKE_CASE` + 前端响应拦截器 `toSnakeKeys`）
+- 数据库兼容 MySQL 8.4 + H2 MySQL 模式（不使用 `MERGE INTO`，改用 `REPLACE INTO`）
+- 主键策略：`ASSIGN_ID`（雪花算法）
+- 逻辑删除字段统一为 `deleted`（0 未删 / 1 已删）
+- 单据状态：0-暂存, 1-已创建, 2-已提交, 3-已审核, 4-已驳回
