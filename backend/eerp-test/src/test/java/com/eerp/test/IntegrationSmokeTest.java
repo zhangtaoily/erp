@@ -71,29 +71,28 @@ class IntegrationSmokeTest extends AbstractIntegrationTest {
         // 组织
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM sys_org WHERE code = 'TEST_ORG'", Integer.class));
-        // 部门
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sys_dept", Integer.class));
-        // 员工
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sys_employee", Integer.class));
+        // 部门 / 员工（data-h2-master-data-seed.sql 替换了最小化行并扩充至 5 行，用 >= 容纳扩展）
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sys_dept", Integer.class) >= 2);
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sys_employee", Integer.class) >= 2);
         // 用户
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM sys_user WHERE username = 'admin'", Integer.class));
         // 客户/供应商/物料
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM md_customer", Integer.class));
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM md_supplier", Integer.class));
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM md_customer", Integer.class) >= 2);
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM md_supplier", Integer.class) >= 2);
         assertTrue(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM md_material", Integer.class) >= 3);
         // 币别/仓库/单位
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM md_currency", Integer.class));
-        assertEquals(2, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM md_warehouse", Integer.class));
-        assertEquals(3, jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM md_unit", Integer.class));
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM md_currency", Integer.class) >= 2);
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM md_warehouse", Integer.class) >= 2);
+        assertTrue(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM md_unit", Integer.class) >= 3);
     }
 
     @Test

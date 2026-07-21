@@ -16,7 +16,7 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema-h2.sql,classpath:schema-h2-master-ext.sql
-      data-locations: classpath:data-h2-seed.sql,classpath:data-h2-master-seed.sql,classpath:data-h2-scm-seed.sql,classpath:data-h2-sal-seed.sql,classpath:data-h2-inv-seed.sql,classpath:data-h2-mfg-seed.sql,classpath:data-h2-fin-seed.sql,classpath:data-h2-tax-seed.sql,classpath:data-h2-sysmsg-seed.sql
+      data-locations: classpath:data-h2-seed.sql,classpath:data-h2-master-seed.sql,classpath:data-h2-master-data-seed.sql,classpath:data-h2-scm-seed.sql,classpath:data-h2-sal-seed.sql,classpath:data-h2-inv-seed.sql,classpath:data-h2-mfg-seed.sql,classpath:data-h2-fin-seed.sql,classpath:data-h2-tax-seed.sql,classpath:data-h2-sysmsg-seed.sql
       continue-on-error: false
   jackson:
     default-property-inclusion: non_null

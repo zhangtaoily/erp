@@ -159,8 +159,8 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { PACT_STATE_LIST } from '@/utils/enum'
-import { boApi } from '@/api/bo'
-import type { FormField, BusinessObject } from '@/types/bo'
+import { billApi } from '@/api/bill'
+import type { FormField } from '@/types/bo'
 
 const props = withDefaults(defineProps<{
   field: FormField
@@ -192,37 +192,27 @@ function getEnumOptions(field: FormField) {
   ]
 }
 
-// ============ 基础资料引用下拉（ref 控件，GAP-D02-001 / RISK-D02-001）============
-// 复用 BoPicker 同源数据：调 boApi.list 加载 ref_bo_code 对应业务对象数据
-const refOptions = ref<{ value: string; label: string }[]>([])
+// ============ 基础资料引用下拉（ref 控件）============
+// 加载 ref_bo_code 对应主数据表的实例记录，用记录 id 作为 value
+const refOptions = ref<{ value: string | number; label: string }[]>([])
 const refLoading = ref(false)
 const refLoaded = ref(false)
 
 async function loadRefOptions() {
   if (!props.field.ref_bo_code) {
-    // 未配置 ref_bo_code 时退化为通用选项（演示）
-    refOptions.value = [
-      { value: 'DEMO001', label: '示例记录 001' },
-      { value: 'DEMO002', label: '示例记录 002' }
-    ]
+    refOptions.value = []
     refLoaded.value = true
     return
   }
   refLoading.value = true
   try {
-    const res: any = await boApi.list({ pageSize: 200 })
-    const allList: BusinessObject[] = res?.list || res || []
-    // 尝试匹配：若 ref_bo_code 在 BO 列表中（基础资料 BO），直接以 BO 自身记录为选项
-    // 简化：原型阶段仅基于已加载 BO 列表做演示，真实实现应加载 ref_bo_code 对应的实例数据
-    const target = allList.find(b => b.bo_code === props.field.ref_bo_code)
-    if (target) {
-      // 演示：用 BO 自身作为选项（真实场景应请求 /bo/{ref_bo_code}/instances）
-      refOptions.value = [
-        { value: target.bo_code, label: target.bo_name }
-      ]
-    } else {
-      refOptions.value = allList.map(b => ({ value: b.bo_code, label: b.bo_name }))
-    }
+    // 加载 ref_bo_code 对应主数据表的记录（如 MD_ORG → sys_org 表）
+    const res: any = await billApi.list(props.field.ref_bo_code, { pageSize: 200 })
+    const list: any[] = res?.list || res || []
+    refOptions.value = list.map(r => ({
+      value: r.id,
+      label: r.name || r.code || `#${r.id}`
+    }))
     refLoaded.value = true
   } catch {
     refOptions.value = []

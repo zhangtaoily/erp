@@ -1,9 +1,13 @@
 package com.eerp.meta.code.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.eerp.common.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 编码规则定义（段式编排）
@@ -39,4 +43,13 @@ public class MetaCodeRule extends BaseEntity {
 
     /** 备注 */
     private String remark;
+
+    /**
+     * 段定义数组（非数据库列，用于前端交互）。
+     * 接收前端 segments 数组，由 Controller 序列化为 segmentsJson；
+     * 返回前端时由 Controller 反序列化 segmentsJson 填充。
+     */
+    @TableField(exist = false)
+    private List<Map<String, Object>> segments;
 }
+

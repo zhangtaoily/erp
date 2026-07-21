@@ -152,7 +152,7 @@ export interface CodeRule {
   org_id?: string
   segments: CodeSegment[]  // 段定义
   reset_type: ResetType    // 流水重置类型
-  is_manual: boolean       // 是否允许手动录入
+  is_manual: 0 | 1        // 是否允许手动录入（后端 Integer，前端用 1/0）
   status: 0 | 1            // 0停用 1启用
 }
 

@@ -109,7 +109,7 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="允许手动录入">
-                    <el-switch v-model="form.is_manual" />
+                    <el-switch v-model="form.is_manual" :active-value="1" :inactive-value="0" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -214,7 +214,7 @@ function emptyForm(): CodeRule {
     org_id: undefined,
     segments: [],
     reset_type: 'none',
-    is_manual: false,
+    is_manual: 1,
     status: 1
   }
 }
@@ -227,9 +227,12 @@ async function loadList() {
   if (list.value.length) {
     onSelectRule(list.value[0])
   } else {
-    Object.assign(form, emptyForm())
-    selectedId.value = ''
-    isNew.value = false
+    // 列表为空：进入新建态（避免 form.id 为空却走 update 分支导致 PUT /code-rule/ 403）
+    const f = emptyForm()
+    f.id = `cr_new_${Date.now()}`
+    Object.assign(form, f)
+    selectedId.value = form.id
+    isNew.value = true
     previewCode.value = ''
   }
 }
@@ -296,7 +299,9 @@ async function onSave() {
     status: form.status
   }
   try {
-    if (isNew.value) {
+    // 防御性判断：临时 id（cr_new_ 前缀）或空 id 一律走 create，避免 PUT /code-rule/ 403
+    const isTempId = !form.id || form.id.startsWith('cr_new_')
+    if (isNew.value || isTempId) {
       const saved: any = await codeRuleApi.create(payload)
       const id = saved?.id || form.id
       Object.assign(form, { id }, payload)

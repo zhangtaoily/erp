@@ -57,8 +57,10 @@ const routes: RouteRecordRaw[] = [
       // 单据运行时
       { path: 'bill/sal_order', name: 'BillSalOrderList', component: () => import('@/views/bill/sal_order/list.vue'), meta: { title: '销售订单列表', group: '单据运行时' } },
       { path: 'bill/sal_order/:id', name: 'BillSalOrderDetail', component: () => import('@/views/bill/sal_order/detail.vue'), meta: { title: '销售订单详情', group: '单据运行时', hidden: true } },
-      // 业务模块动态路由：/bill/<bo_code> 统一指向占位页（具体业务页面后续逐步替换）
-      { path: 'bill/:boCode', name: 'BillRuntime', component: Placeholder, meta: { title: '单据', group: '业务模块', hidden: true } },
+      // 业务模块通用动态路由：/bill/<bo_code> 列表页、/bill/<bo_code>/<id> 详情页
+      // 按 boCode 加载实体元数据 + 布局元数据（meta_form_layout.layout_json）驱动表单渲染
+      { path: 'bill/:boCode', name: 'BillRuntimeList', component: () => import('@/views/bill/runtime/GenericBillList.vue'), meta: { title: '单据列表', group: '业务模块' } },
+      { path: 'bill/:boCode/:id', name: 'BillRuntimeDetail', component: () => import('@/views/bill/runtime/GenericBillDetail.vue'), meta: { title: '单据详情', group: '业务模块', hidden: true } },
       // 主数据动态路由：/master/<bo_code> 统一指向占位页
       { path: 'master/:boCode', name: 'MasterRuntime', component: Placeholder, meta: { title: '主数据', group: '基础数据', hidden: true } }
     ]
