@@ -131,7 +131,7 @@ npm run dev
 
 系统内置自研 `bos-expr` 表达式语言，基于 ANTLR4 文法定义，用于驱动实体服务规则、插件脚本、校验表达式等场景。
 
-**语法文件**：[`Expr.g4`](file:///d:/prj/erp/backend/eerp-meta/src/main/resources/grammar/Expr.g4)
+**语法文件**：[`Expr.g4`](backend/eerp-meta/src/main/resources/grammar/Expr.g4)
 
 **支持特性**：
 - 字段引用：`$qty`、`$goods.price`
