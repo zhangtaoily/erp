@@ -265,7 +265,14 @@ async function loadColumns() {
   loadingColumns.value = true
   try {
     const res = await listConfigApi.columns(boCode.value)
-    columns.value = (res || []).sort((a, b) => a.sort_index - b.sort_index)
+    // 后端返回 is_show/is_sum/is_avg 为 0/1（Number），
+    // 但 el-checkbox 内部用 isBoolean(v) 判断选中状态，非 Boolean 始终 false
+    columns.value = (res || []).map((c: any) => ({
+      ...c,
+      is_show: !!c.is_show,
+      is_sum: !!c.is_sum,
+      is_avg: !!c.is_avg
+    })).sort((a: any, b: any) => a.sort_index - b.sort_index)
   } catch {
     columns.value = []
   } finally {
@@ -277,7 +284,15 @@ async function loadQueryFields() {
   loadingQuery.value = true
   try {
     const res = await listConfigApi.queryFields(boCode.value)
-    queryFields.value = (res || []).sort((a, b) => a.sort_index - b.sort_index)
+    // el-checkbox 需要 Boolean，operators 需要数组
+    queryFields.value = (res || []).map((f: any) => ({
+      ...f,
+      is_common: !!f.is_common,
+      is_advanced: !!f.is_advanced,
+      operators: typeof f.operators === 'string' && f.operators
+        ? f.operators.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : Array.isArray(f.operators) ? f.operators : []
+    })).sort((a: any, b: any) => a.sort_index - b.sort_index)
   } catch {
     queryFields.value = []
   } finally {
@@ -303,7 +318,14 @@ async function onSave() {
   if (activeTab.value === 'columns') {
     reindexColumns()
     try {
-      await listConfigApi.saveColumns(boCode.value, columns.value)
+      // el-checkbox 写回 Boolean（true/false），发送前转回 0/1
+      const data = columns.value.map((c: any) => ({
+        ...c,
+        is_show: c.is_show ? 1 : 0,
+        is_sum: c.is_sum ? 1 : 0,
+        is_avg: c.is_avg ? 1 : 0
+      }))
+      await listConfigApi.saveColumns(boCode.value, data)
       ElMessage.success('展示字段配置已保存')
     } catch {
       ElMessage.error('保存失败')
@@ -311,7 +333,12 @@ async function onSave() {
   } else {
     queryFields.value.forEach((f, i) => (f.sort_index = i + 1))
     try {
-      await listConfigApi.saveQueryFields(boCode.value, queryFields.value)
+      const data = queryFields.value.map((f: any) => ({
+        ...f,
+        is_common: f.is_common ? 1 : 0,
+        is_advanced: f.is_advanced ? 1 : 0
+      }))
+      await listConfigApi.saveQueryFields(boCode.value, data)
       ElMessage.success('查询字段配置已保存')
     } catch {
       ElMessage.error('保存失败')

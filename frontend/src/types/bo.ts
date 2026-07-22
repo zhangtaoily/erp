@@ -342,7 +342,10 @@ export interface QueryField {
   ctrl_type: ControlType  // 控件类型（与 SQL meta_list_column.ctrl_type 对齐）
   is_common: boolean      // 普通查询字段
   is_advanced: boolean    // 高级查询字段
-  operators: string[]     // 支持的运算符
+  operators: string[]     // 支持的运算符（前端 normalize 后为数组，后端存逗号分隔字符串）
+  default_op?: string     // 默认运算符（如 eq/like）
+  enum_code?: string      // 枚举编码（如 PACT_STATE）
+  ref_bo_code?: string    // 基础资料引用 bo_code（如 MD_ORG）
   sort_index: number
 }
 

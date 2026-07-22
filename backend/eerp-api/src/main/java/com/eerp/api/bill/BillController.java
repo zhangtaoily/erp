@@ -12,6 +12,7 @@ import com.eerp.bos.push.PushLine;
 import com.eerp.bos.push.PushResult;
 import com.eerp.common.api.PageRequest;
 import com.eerp.common.api.PageResult;
+import com.eerp.common.api.QueryCondition;
 import com.eerp.common.api.Result;
 import com.eerp.common.exception.ServiceException;
 import com.eerp.common.security.SecurityContext;
@@ -59,12 +60,81 @@ public class BillController {
         this.printTemplateService = printTemplateService;
     }
 
+    /**
+     * 单据列表查询（GET，兼容旧版扁平参数）。结构化的查询条件请使用 POST /list。
+     */
     @GetMapping("/list")
     public Result<PageResult<Map<String, Object>>> list(@PathVariable String boCode,
                                                         PageRequest pageRequest,
                                                         @RequestParam(required = false) Map<String, Object> params) {
         Map<String, Object> queryParams = params != null ? new HashMap<>(params) : new HashMap<>();
         return Result.ok(billService.listBills(boCode, pageRequest, queryParams));
+    }
+
+    /**
+     * 单据列表查询（POST，结构化查询条件）。
+     * <pre>
+     * {
+     *   "conditions": [
+     *     {"field_code": "code", "operator": "like", "value": "0007"},
+     *     {"field_code": "pact_state", "operator": "eq", "value": 1},
+     *     {"field_code": "pact_date", "operator": "between", "value_start": "2026-07-01", "value_end": "2026-07-31"}
+     *   ],
+     *   "pageNum": 1,
+     *   "pageSize": 20
+     * }
+     * </pre>
+     */
+    @PostMapping("/list")
+    public Result<PageResult<Map<String, Object>>> listPost(@PathVariable String boCode,
+                                                             @RequestBody Map<String, Object> body) {
+        // 提取分页参数
+        int pageNum = 1;
+        int pageSize = 20;
+        Object pn = body.get("pageNum");
+        Object ps = body.get("pageSize");
+        if (pn instanceof Number) pageNum = ((Number) pn).intValue();
+        if (ps instanceof Number) pageSize = ((Number) ps).intValue();
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setPageNum(pageNum);
+        pageRequest.setPageSize(pageSize);
+
+        // 提取 conditions 数组，转换为后端 buildWhere 期望的 Map<String, Object> 格式
+        Map<String, Object> queryParams = toFlatQueryParams(body.get("conditions"));
+        return Result.ok(billService.listBills(boCode, pageRequest, queryParams));
+    }
+
+    /**
+     * 将结构化查询条件转换为后端 buildWhere 期望的扁平 Map 格式。
+     * <p>每个条件的 value 为 {"op":"like","value":"0007"} 的 Map 结构，
+     * 与 resolveOp / buildCondition 中的 Map 处理逻辑对齐。</p>
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toFlatQueryParams(Object conditionsObj) {
+        Map<String, Object> result = new HashMap<>();
+        if (conditionsObj instanceof List) {
+            List<?> list = (List<?>) conditionsObj;
+            for (Object item : list) {
+                if (item instanceof Map) {
+                    Map<String, Object> raw = (Map<String, Object>) item;
+                    QueryCondition cond = new QueryCondition();
+                    cond.setFieldCode(str(raw, "field_code"));
+                    cond.setOperator(str(raw, "operator"));
+                    cond.setValue(raw.get("value"));
+                    cond.setValueStart(raw.get("value_start"));
+                    cond.setValueEnd(raw.get("value_end"));
+                    if (cond.isValid() && cond.hasValue()) {
+                        result.put(cond.getFieldCode(), cond.toConditionMap());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private String str(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v == null ? null : v.toString();
     }
 
     @GetMapping("/{id}")

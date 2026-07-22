@@ -198,13 +198,14 @@ public class ListConfigController {
         column.setFieldName(str(map, "field_name", "fieldName"));
         column.setEntityCode(str(map, "entity_code", "entityCode"));
         column.setCtrlType(str(map, "ctrl_type", "ctrlType"));
-        column.setIsShow(toInt(map.get("is_show") != null ? map.get("is_show") : map.get("isShow")));
+        column.setIsShow(toInt(first(map, "is_show", "isShow")));
         column.setIsFixed(str(map, "is_fixed", "isFixed"));
-        column.setIsSum(toInt(map.get("is_sum") != null ? map.get("is_sum") : map.get("isSum")));
-        column.setIsAvg(toInt(map.get("is_avg") != null ? map.get("is_avg") : map.get("isAvg")));
-        column.setColWidth(toInt(map.get("col_width") != null ? map.get("col_width") : map.get("colWidth")));
-        column.setSortIndex(toInt(map.get("sort_index") != null ? map.get("sort_index") : map.get("sortIndex")));
-        column.setIsEnable(toInt(map.get("is_enable") != null ? map.get("is_enable") : map.get("isEnable")));
+        column.setIsSum(toInt(first(map, "is_sum", "isSum")));
+        column.setIsAvg(toInt(first(map, "is_avg", "isAvg")));
+        column.setColWidth(toInt(first(map, "col_width", "colWidth")));
+        column.setSortIndex(toInt(first(map, "sort_index", "sortIndex")));
+        column.setIsEnable(toInt(first(map, "is_enable", "isEnable")));
+        if (column.getIsEnable() == null) column.setIsEnable(1);
         return column;
     }
 
@@ -222,13 +223,20 @@ public class ListConfigController {
         field.setFieldCode(str(map, "field_code", "fieldCode"));
         field.setFieldName(str(map, "field_name", "fieldName"));
         field.setEntityCode(str(map, "entity_code", "entityCode"));
-        field.setIsCommon(toInt(map.get("is_common") != null ? map.get("is_common") : map.get("isCommon")));
-        field.setIsAdvanced(toInt(map.get("is_advanced") != null ? map.get("is_advanced") : map.get("isAdvanced")));
-        field.setOperators(str(map, "operators", "operators"));
+        field.setIsCommon(toInt(first(map, "is_common", "isCommon")));
+        field.setIsAdvanced(toInt(first(map, "is_advanced", "isAdvanced")));
+        field.setOperators(toOperators(first(map, "operators", "operators")));
         field.setDefaultOp(str(map, "default_op", "defaultOp"));
-        field.setSortIndex(toInt(map.get("sort_index") != null ? map.get("sort_index") : map.get("sortIndex")));
-        field.setIsEnable(toInt(map.get("is_enable") != null ? map.get("is_enable") : map.get("isEnable")));
+        field.setSortIndex(toInt(first(map, "sort_index", "sortIndex")));
+        field.setIsEnable(toInt(first(map, "is_enable", "isEnable")));
+        if (field.getIsEnable() == null) field.setIsEnable(1);
         return field;
+    }
+
+    /** 兼容 snake_case / camelCase 取值（可能为 Boolean / Number / String / List） */
+    private Object first(Map<String, Object> map, String snakeKey, String camelKey) {
+        Object v = map.get(snakeKey);
+        return v != null ? v : map.get(camelKey);
     }
 
     /** 兼容 snake_case / camelCase 取字符串值 */
@@ -240,9 +248,13 @@ public class ListConfigController {
         return v == null ? null : v.toString();
     }
 
+    /** 处理前端 el-checkbox 返回的 Boolean、el-input-number 返回的 Number、字符串数字 */
     private Integer toInt(Object v) {
         if (v == null) {
             return null;
+        }
+        if (v instanceof Boolean) {
+            return ((Boolean) v) ? 1 : 0;
         }
         if (v instanceof Number) {
             return ((Number) v).intValue();
@@ -252,5 +264,21 @@ public class ListConfigController {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** operators 字段：前端可能传 String[] 数组，后端存逗号分隔字符串 */
+    @SuppressWarnings("unchecked")
+    private String toOperators(Object v) {
+        if (v == null) return null;
+        if (v instanceof List) {
+            List<Object> list = (List<Object>) v;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < list.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(list.get(i) == null ? "" : list.get(i).toString());
+            }
+            return sb.toString();
+        }
+        return v.toString();
     }
 }
