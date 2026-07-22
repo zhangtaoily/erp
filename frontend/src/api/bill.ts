@@ -2,9 +2,11 @@ import { request } from './request'
 
 // 单据运行时通用接口
 export const billApi = {
-  list: (boCode: string, params: any) => {
-    // 结构化查询：POST /api/bill/{boCode}/list，发送 conditions 数组
-    // 兼容旧调用方式（params 为扁平键值对），自动转换为 conditions
+  /** 列表查询（GET，兼容旧版扁平参数），用于简单查询场景（如加载 ref 选项） */
+  list: (boCode: string, params: any) => request.get<any>(`/bill/${boCode}/list`, { params }),
+
+  /** 列表查询（POST，结构化 conditions 数组），支持运算符选择和日期区间 */
+  query: (boCode: string, params: any) => {
     const conditions = buildConditions(params)
     return request.post<any>(`/bill/${boCode}/list`, {
       conditions,
@@ -12,6 +14,7 @@ export const billApi = {
       pageSize: params.pageSize || 20
     })
   },
+
   detail: (boCode: string, id: string) => request.get<any>(`/bill/${boCode}/${id}`),
   save: (boCode: string, data: any) => request.post<any>(`/bill/${boCode}`, data),
   operate: (boCode: string, id: string, action: string, data?: any) =>

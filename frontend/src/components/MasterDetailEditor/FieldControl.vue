@@ -71,7 +71,9 @@
     <el-option v-for="opt in getEnumOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
   </el-select>
 
-  <!-- ref → BoPicker/el-select 下拉（基础资料引用，GAP-D02-001）-->
+  <!-- ref 只读模式 → 纯文本 -->
+  <span v-else-if="field.ctrl_type === 'ref' && isDisabled" class="ref-readonly">{{ refDisplayName }}</span>
+  <!-- ref → el-select 下拉（基础资料引用，GAP-D02-001）-->
   <el-select
     v-else-if="field.ctrl_type === 'ref'"
     :model-value="modelValue"
@@ -155,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { PACT_STATE_LIST } from '@/utils/enum'
@@ -183,6 +185,14 @@ const emit = defineEmits<{
 
 // 合并外部 disabled 与字段元数据 is_readonly
 const isDisabled = computed(() => props.disabled || !!props.field.is_readonly)
+
+// ref 字段只读模式下的显示名称：从已加载的 options 中匹配，或使用 modelValue 兜底
+const refDisplayName = computed(() => {
+  const id = props.modelValue
+  if (id == null || id === '') return '—'
+  const opt = refOptions.value.find(o => String(o.value) === String(id))
+  return opt?.label || String(id)
+})
 
 // ============ 枚举选项（select 控件）============
 function getEnumOptions(field: FormField) {
@@ -220,7 +230,7 @@ async function loadRefBoOptions(refBoCode: string): Promise<RefCacheEntry> {
       const res: any = await billApi.list(refBoCode, { pageSize: 200 })
       const list: any[] = res?.list || res || []
       const options = list.map(r => ({
-        value: r.id,
+        value: r.id,      // 保持原始类型，与 modelValue 一致
         label: r.name || r.code || `#${r.id}`
       }))
       refCache.set(refBoCode, { options, loaded: true })
@@ -259,18 +269,11 @@ function onRefVisibleChange(visible: boolean) {
   if (visible && !refOptions.value.length) loadRefOptions()
 }
 
-// ref_bo_code 变更时重新加载
+// ref_bo_code 变更时（含首次）加载选项，比 onMounted 更早触发
 watch(() => props.field.ref_bo_code, () => {
   refOptions.value = []
   loadRefOptions()
-})
-
-// 编辑界面有值时立即加载选项（利用共享缓存，多个同 ref_bo_code 字段只会发一次请求）
-onMounted(() => {
-  if (props.field.ctrl_type === 'ref' && props.modelValue != null && props.modelValue !== '') {
-    loadRefOptions()
-  }
-})
+}, { immediate: true })
 
 // 组件卸载时标记取消，避免卸载后还写入 ref（防止内存泄漏）
 onBeforeUnmount(() => {
@@ -325,5 +328,10 @@ async function mockUpload(options: any, _field: FormField) {
   color: #909399;
   font-size: 12px;
   white-space: nowrap;
+}
+.ref-readonly {
+  display: inline-block;
+  line-height: 32px;
+  color: #303133;
 }
 </style>

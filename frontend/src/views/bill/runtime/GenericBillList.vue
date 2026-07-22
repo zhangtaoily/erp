@@ -225,6 +225,8 @@
             </template>
             <!-- ref 类型列优先显示后端补充的 _name 字段，没有时 fallback 到 ID -->
             <template v-else-if="col.ctrl_type === 'ref'">{{ row[fieldKey(col) + '_name'] ?? row[fieldKey(col)] }}</template>
+            <!-- 布尔字段：0/1 → 否/是 -->
+            <template v-else-if="col.ctrl_type === 'checkbox' || col.field_code === 'is_closed' || col.field_code === 'is_cancel'">{{ ['否','是'][Number(row[fieldKey(col)])] || row[fieldKey(col)] }}</template>
             <template v-else>{{ row[fieldKey(col)] }}</template>
           </template>
         </el-table-column>
@@ -509,7 +511,7 @@ async function loadData(extraParams?: Record<string, any>) {
       pageNum: page.pageNum,
       pageSize: page.pageSize
     }
-    const res = await billApi.list(boCode.value, params)
+    const res = await billApi.query(boCode.value, params)
     tableData.value = res?.list || []
     page.total = res?.total || 0
   } catch {
