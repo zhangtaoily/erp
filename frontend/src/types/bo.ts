@@ -68,7 +68,8 @@ export interface FormField {
   group_name?: string      // 字段分组
   validate_rule?: string   // 校验规则表达式
   formula?: string         // 计算公式（如 qty*price，由实体服务规则 calc 类型执行，与 SQL meta_form_field.formula 对齐）
-  summary_to?: string      // 汇总到主表字段（如 amount 汇总到 total_amount，与 SQL meta_form_field.summary_to 对齐）
+  summary_to?: string      // 汇总到上级表字段（子表 amount→主表 total_amount；孙表 assign_qty→子表 qty）
+  link_from?: string       // 联动取值自上级表字段（子表 warehouse 联动自主表 warehouse，上级赋A则下级批量赋A）
   placeholder?: string
 }
 

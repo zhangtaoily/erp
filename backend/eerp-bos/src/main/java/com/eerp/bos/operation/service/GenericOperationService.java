@@ -134,11 +134,21 @@ public class GenericOperationService extends AbstractOperationService {
                 sql.append(", ");
             }
             sql.append("`is_closed` = 1");
+        } else if ("unclose".equals(operation)) {
+            if (!params.isEmpty()) {
+                sql.append(", ");
+            }
+            sql.append("`is_closed` = 0");
         } else if ("cancel".equals(operation)) {
             if (!params.isEmpty()) {
                 sql.append(", ");
             }
             sql.append("`is_cancel` = 1");
+        } else if ("uncancel".equals(operation)) {
+            if (!params.isEmpty()) {
+                sql.append(", ");
+            }
+            sql.append("`is_cancel` = 0");
         }
 
         sql.append(" WHERE `id` = ?");

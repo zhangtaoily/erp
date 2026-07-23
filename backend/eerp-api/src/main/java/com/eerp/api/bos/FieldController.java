@@ -98,6 +98,7 @@ public class FieldController {
         field.setEnumCode(str(map, "enum_code", "enumCode"));
         field.setFormula(str(map, "formula", "formula"));
         field.setSummaryTo(str(map, "summary_to", "summaryTo"));
+        field.setLinkFrom(str(map, "link_from", "linkFrom"));
         field.setGroupName(str(map, "group_name", "groupName"));
         field.setColWidth(toInt(first(map, "col_width", "colWidth")));
         field.setSortIndex(toInt(first(map, "sort_index", "sortIndex")));

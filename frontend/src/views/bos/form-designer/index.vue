@@ -287,6 +287,18 @@
             <el-input v-model="selectedField.formula" placeholder="如：qty*price" />
             <div class="formula-tip">用字段编码组成算式，如 qty*price 或 qty*price*discount</div>
           </el-form-item>
+          <el-form-item label="汇总到" v-if="selectedFieldParentOptions.length && ['number', 'amount', 'qty'].includes(selectedField.ctrl_type)">
+            <el-select v-model="selectedField.summary_to" clearable placeholder="选择上级表汇总目标字段" style="width:100%">
+              <el-option v-for="pf in selectedFieldParentOptions" :key="pf.field_code" :label="`${pf.field_name}(${pf.field_code})`" :value="pf.field_code" />
+            </el-select>
+            <div class="formula-tip">本字段按行求 SUM 写入上级表指定字段（上行聚合）</div>
+          </el-form-item>
+          <el-form-item label="联动取值" v-if="selectedFieldParentOptions.length">
+            <el-select v-model="selectedField.link_from" clearable placeholder="选择上级表联动源字段" style="width:100%">
+              <el-option v-for="pf in selectedFieldParentOptions" :key="pf.field_code" :label="`${pf.field_name}(${pf.field_code})`" :value="pf.field_code" />
+            </el-select>
+            <div class="formula-tip">上级表该字段变更时，下级表本字段批量赋同值（下行联动）</div>
+          </el-form-item>
         </el-form>
 
         <!-- 实体属性（未选中字段时） -->
@@ -550,6 +562,17 @@ function onDropEntity(e: DragEvent, entity: FormEntity) {
 const selectedField = computed(() => {
   const entity = designEntities.value.find(e => e.entity_code === activeEntityCode.value)
   return entity?.fields?.find(f => f.id === selectedFieldId.value) || null
+})
+
+// 当前选中字段所属实体的"上级实体字段列表"（用于配置 summary_to / link_from 的下拉选项）
+// 子表字段 → 主表字段；孙表字段 → 其父子表字段
+const selectedFieldParentOptions = computed(() => {
+  const f = selectedField.value
+  if (!f) return []
+  const ent = designEntities.value.find(e => e.entity_code === f.entity_code)
+  if (!ent || !ent.parent_entity_code) return []
+  const parent = designEntities.value.find(e => e.entity_code === ent.parent_entity_code)
+  return parent?.fields?.filter((x: FormField) => !x.is_hidden) || []
 })
 
 const currentEntity = computed(() =>

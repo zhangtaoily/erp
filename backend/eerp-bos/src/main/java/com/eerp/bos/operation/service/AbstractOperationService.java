@@ -226,14 +226,21 @@ public abstract class AbstractOperationService {
         }
 
         // === 事务外：状态机校验 ===
-        String buttonCode = operation; // submit/audit/reject/revoke/close/cancel 与按钮编码一一对应
-        StateTransitionResult transition = stateMachineEngine.execute(boCode, billId, buttonCode, ctx.getReason());
+        // unclose/uncancel 是 close/cancel 的反向字段切换（is_closed/is_cancel 1→0），不走状态机校验：
+        // 反向操作无需 require_reason，且 seed 中反向流转与正向共用 button_code（matchTransition 取首个匹配）无法区分方向。
+        // 直接构造成功结果，后续 doStateChange 按原始 operation 取反字段。
+        final StateTransitionResult transition;
+        if ("unclose".equals(operation) || "uncancel".equals(operation)) {
+            transition = StateTransitionResult.ok(3, 3, operation, "操作[" + operation + "]校验通过");
+        } else {
+            transition = stateMachineEngine.execute(boCode, billId, operation, ctx.getReason());
+        }
         if (!transition.isSuccess()) {
             return OperationResult.fail(transition.getMessage());
         }
 
-        // 获取匹配的流转定义（供 postAction 执行器使用）
-        MetaStateTransition matched = stateMachineEngine.matchTransition(boCode, buttonCode);
+        // 获取匹配的流转定义（供 postAction 执行器使用）；unclose/uncancel 无匹配返回 null，跳过执行器
+        final MetaStateTransition matched = stateMachineEngine.matchTransition(boCode, operation);
 
         // 执行流转执行器 postAction（收集 needWf/needWriteback 标记）
         final Map<String, Object> extras = new HashMap<>();

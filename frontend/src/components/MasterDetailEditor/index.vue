@@ -25,8 +25,8 @@
                     <FieldControl
                       :field="field"
                       :model-value="formData[field.field_code]"
-                      :disabled="field.is_system && mode === 'edit'"
-                      @update:model-value="(v: any) => (formData[field.field_code] = v)"
+                      :disabled="mode === 'view' || (field.is_system && mode === 'edit') || isComputedField(mainEntity?.entity_code || '', field.field_code)"
+                      @update:model-value="(v: any) => onMainFieldChange(field, v)"
                     />
                   </el-form-item>
                 </el-col>
@@ -76,7 +76,7 @@
                   <FieldControl
                     :field="f"
                     :model-value="row[f.field_code]"
-                    :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index'"
+                    :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || isComputedField(sub.entity_code, f.field_code)"
                     size="small"
                     @update:model-value="(v: any) => { row[f.field_code] = v; onSubRowChange(sub, row, f) }"
                   />
@@ -140,7 +140,7 @@
                     :model-value="row[f.field_code]"
                     :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index'"
                     size="small"
-                    @update:model-value="(v: any) => (row[f.field_code] = v)"
+                    @update:model-value="(v: any) => { row[f.field_code] = v; onGrandchildRowChange(gc, currentSubRow(activeSubEntity)) }"
                   />
                 </template>
               </el-table-column>
@@ -175,8 +175,8 @@
                 <FieldControl
                   :field="field"
                   :model-value="formData[field.field_code]"
-                  :disabled="field.is_system && mode === 'edit'"
-                  @update:model-value="(v: any) => (formData[field.field_code] = v)"
+                  :disabled="mode === 'view' || (field.is_system && mode === 'edit') || isComputedField(mainEntity?.entity_code || '', field.field_code)"
+                  @update:model-value="(v: any) => onMainFieldChange(field, v)"
                 />
               </el-form-item>
             </el-col>
@@ -226,7 +226,7 @@
                             :model-value="gcRow[f.field_code]"
                             :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || !!f.formula"
                             size="small"
-                            @update:model-value="(v: any) => (gcRow[f.field_code] = v)"
+                            @update:model-value="(v: any) => { gcRow[f.field_code] = v; onGrandchildRowChange(gc, row) }"
                           />
                         </template>
                       </el-table-column>
@@ -252,7 +252,7 @@
                 <FieldControl
                   :field="f"
                   :model-value="row[f.field_code]"
-                  :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || !!f.formula"
+                  :disabled="mode === 'view' || f.is_system || f.field_code === 'sort_index' || !!f.formula || isComputedField(sub.entity_code, f.field_code)"
                   size="small"
                   @update:model-value="(v: any) => { row[f.field_code] = v; onSubRowChange(sub, row, f) }"
                 />
@@ -385,6 +385,12 @@ function addSubRow(sub: FormEntity) {
       newRow[f.field_code] = f.default_value || (f.ctrl_type === 'checkbox' ? false : f.ctrl_type === 'number' || f.ctrl_type === 'amount' || f.ctrl_type === 'qty' ? 0 : '')
     }
   })
+  // 联动赋值：新行继承主表中 link_from 指向的字段当前值
+  sub.fields.forEach(f => {
+    if (f.link_from && formData.value[f.link_from] !== undefined) {
+      newRow[f.field_code] = formData.value[f.link_from]
+    }
+  })
   // 孙表初始化
   getGrandchildEntities(sub.entity_code).forEach(gc => {
     newRow[gc.entity_code] = []
@@ -445,11 +451,15 @@ function addGrandchildRow(gc: FormEntity, parentRow: any) {
     }
   })
   parentRow[gc.entity_code].push(newRow)
+  // 新增孙表行影响孙→子汇总，重算保持一致
+  recalcGrandchildSummary(gc, parentRow)
 }
 
 function deleteGrandchildRow(gc: FormEntity, parentRow: any, index: number) {
   if (!parentRow || !parentRow[gc.entity_code]) return
   parentRow[gc.entity_code].splice(index, 1)
+  // 删除孙表行影响孙→子汇总，重算并级联子→主汇总
+  onGrandchildRowChange(gc, parentRow)
 }
 
 // ============ 汇总规则配置驱动（GAP-D02-002 / RISK-D02-002）============
@@ -484,6 +494,59 @@ function recalcSubSummary(sub: FormEntity) {
   sums.forEach(s => {
     formData.value[s.target_field] = s.value
   })
+}
+
+// ============ 孙→子汇总（孙表字段 summary_to 指向子表行字段）============
+// 孙表字段配置 summary_to = '子表行字段编码'，运行时对该子表行下所有孙表行求 SUM 写回子表行字段
+function recalcGrandchildSummary(gc: FormEntity, parentRow: any) {
+  if (!parentRow) return
+  const rows = parentRow[gc.entity_code] || []
+  gc.fields.forEach(f => {
+    if (!f.summary_to) return
+    const sum = rows.reduce((s, r) => s + (Number(r[f.field_code]) || 0), 0)
+    parentRow[f.summary_to] = Math.round(sum * 100) / 100
+  })
+}
+
+// 孙表行变更：重算孙→子汇总，并级联触发子→主汇总（孙表字段变更可能影响子表汇总字段，进而影响主表）
+function onGrandchildRowChange(gc: FormEntity, parentRow: any) {
+  recalcGrandchildSummary(gc, parentRow)
+  const subEntity = subEntities.value.find(s => s.entity_code === gc.parent_entity_code)
+  if (subEntity) recalcSubSummary(subEntity)
+}
+
+// ============ 主→子联动（子表字段 link_from 指向主表字段）============
+// 主表字段变更时，遍历子表所有行，把 link_from 指向该主表字段的子表字段批量赋同值
+function onMainFieldChange(field: FormField, value: any) {
+  formData.value[field.field_code] = value
+  subEntities.value.forEach(sub => {
+    const linkedFields = sub.fields.filter(f => f.link_from === field.field_code)
+    if (!linkedFields.length) return
+    const data = getSubData(sub.entity_code)
+    linkedFields.forEach(lf => {
+      data.forEach(row => { row[lf.field_code] = value })
+    })
+  })
+}
+
+// ============ 被下级表汇总写入的字段（计算值，应只读）============
+// 上级表字段若被任一下级表字段的 summary_to 引用，则为计算值，禁止手动编辑避免被覆盖
+const computedFromBelowMap = computed(() => {
+  const map: Record<string, Set<string>> = {}
+  props.entities.forEach(e => {
+    if (!e.parent_entity_code) return
+    e.fields?.forEach(f => {
+      if (f.summary_to) {
+        if (!map[e.parent_entity_code]) map[e.parent_entity_code] = new Set()
+        map[e.parent_entity_code].add(f.summary_to)
+      }
+    })
+  })
+  return map
+})
+
+function isComputedField(entityCode: string, fieldCode: string): boolean {
+  return computedFromBelowMap.value[entityCode]?.has(fieldCode) || false
 }
 
 // ============ 计算规则配置驱动（GAP-D02-003 / RISK-D02-002）============

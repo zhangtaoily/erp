@@ -477,13 +477,25 @@ async function handleToggle(action: 'close' | 'unclose' | 'cancel' | 'uncancel')
     ElMessage.warning('请先保存单据')
     return
   }
+  let extra: any
+  // cancel 流转配置 require_reason=1，需填写取消原因；close/unclose/uncancel 不需要
+  if (action === 'cancel') {
+    const reason = await ElMessageBox.prompt('请输入取消原因', '取消', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'textarea'
+    }).then(r => r.value).catch(() => null)
+    if (reason === null) return
+    extra = { reason }
+  }
   try {
-    await billApi.operate(boCode.value, String(formData.id), action)
+    await billApi.operate(boCode.value, String(formData.id), action, extra)
     if (action === 'close') formData.is_closed = 1
     if (action === 'unclose') formData.is_closed = 0
     if (action === 'cancel') formData.is_cancel = 1
     if (action === 'uncancel') formData.is_cancel = 0
     ElMessage.success(`${actionLabel(action)}成功`)
+    await reloadDetail()
   } catch {
     ElMessage.error(`${actionLabel(action)}失败`)
   }

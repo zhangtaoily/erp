@@ -73,8 +73,11 @@ public class MetaFormField extends BaseEntity {
     /** 计算公式（如 qty*price，由实体服务规则calc类型执行） */
     private String formula;
 
-    /** 汇总到主表字段（如 amount 汇总到 total_amount） */
+    /** 汇总到上级表字段（如子表 amount 汇总到主表 total_amount；孙表 assign_qty 汇总到子表 qty） */
     private String summaryTo;
+
+    /** 联动取值自上级表字段（如子表 warehouse 联动自主表 warehouse，上级赋值A则下级批量赋A） */
+    private String linkFrom;
 
     /** 字段分组（如 基本信息/汇总/系统/其他） */
     private String groupName;

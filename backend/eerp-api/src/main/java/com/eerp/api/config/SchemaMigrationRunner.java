@@ -22,6 +22,8 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         addColumnIfMissing("meta_query_field", "entity_code", "varchar(50) DEFAULT NULL");
         addColumnIfMissing("meta_form_field", "is_readonly", "SMALLINT DEFAULT 0");
+        // 联动赋值：上级表字段变更时，下级表对应字段批量赋同值（如主表仓库 → 子表仓库）
+        addColumnIfMissing("meta_form_field", "link_from", "varchar(100) DEFAULT NULL");
         // 金额字段设置计算公式 qty*price，取消 is_system 标记使其可自动计算
         try {
             jdbcTemplate.update("UPDATE meta_form_field SET formula = 'qty*price', is_system = 0 " +

@@ -71,9 +71,7 @@
     <el-option v-for="opt in getEnumOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
   </el-select>
 
-  <!-- ref 只读模式 → 纯文本 -->
-  <span v-else-if="field.ctrl_type === 'ref' && isDisabled" class="ref-readonly">{{ refDisplayName }}</span>
-  <!-- ref → el-select 下拉（基础资料引用，GAP-D02-001）-->
+  <!-- ref → el-select 下拉（基础资料引用，GAP-D02-001）；禁用时由 isDisabled 控制统一禁用样式 -->
   <el-select
     v-else-if="field.ctrl_type === 'ref'"
     :model-value="modelValue"
@@ -185,14 +183,6 @@ const emit = defineEmits<{
 
 // 合并外部 disabled 与字段元数据 is_readonly
 const isDisabled = computed(() => props.disabled || !!props.field.is_readonly)
-
-// ref 字段只读模式下的显示名称：从已加载的 options 中匹配，或使用 modelValue 兜底
-const refDisplayName = computed(() => {
-  const id = props.modelValue
-  if (id == null || id === '') return '—'
-  const opt = refOptions.value.find(o => String(o.value) === String(id))
-  return opt?.label || String(id)
-})
 
 // ============ 枚举选项（select 控件）============
 function getEnumOptions(field: FormField) {
@@ -328,10 +318,5 @@ async function mockUpload(options: any, _field: FormField) {
   color: #909399;
   font-size: 12px;
   white-space: nowrap;
-}
-.ref-readonly {
-  display: inline-block;
-  line-height: 32px;
-  color: #303133;
 }
 </style>
