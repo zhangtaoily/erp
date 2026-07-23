@@ -127,15 +127,16 @@ export interface PushRule {
   rule_code: string
   rule_name: string
   src_bo_code: string      // 源业务对象
-  target_bo_code: string   // 目标业务对象
-  field_mappings: PushFieldMapping[]
+  tgt_bo_code: string      // 目标业务对象（对齐后端 MetaPushRule.tgtBoCode）
+  field_mapping_json: string  // 字段映射 JSON 字符串（对齐后端 MetaPushRule.fieldMappingJson）
   vp_check_expr?: string   // 可下推量校验表达式
   filter_expr?: string     // 过滤条件
   qty_field?: string       // 可下推数量字段（如 qty，GAP-D04-001 / PRD 02.3.3）
   pushed_field?: string    // 已下推量回写字段（如 out_qty，GAP-D04-001 / PRD 02.3.3）
-  allow_merge: boolean     // 允许合并下推
-  allow_split: boolean     // 允许拆分下推
-  status: 0 | 1            // 0停用 1启用
+  qty_field_scope?: 'main' | 'sub'  // 数量字段归属层级：main=主表总量下推，sub=子表明细下推（默认 sub）
+  allow_merge: number      // 允许合并下推（0/1，对齐后端 Integer）
+  allow_split: number      // 允许拆分下推（0/1，对齐后端 Integer）
+  is_enable: number        // 0停用 1启用（对齐后端 MetaPushRule.isEnable）
 }
 
 export interface PushFieldMapping {
@@ -143,6 +144,7 @@ export interface PushFieldMapping {
   target_field: string
   is_main: boolean         // 主表映射 or 子表映射
   transform_expr?: string  // 转换表达式
+  checked?: boolean        // 是否启用此映射（前端勾选用，不持久化）
 }
 
 // ============ 编码规则（PRD 06.1）============

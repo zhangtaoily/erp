@@ -38,6 +38,8 @@ service.interceptors.request.use(
 let redirecting = false
 service.interceptors.response.use(
   (response) => {
+    // 成功响应说明 token 有效，重置跳转标志（避免首次 403 后 redirecting 卡住导致后续不再跳转登录页）
+    redirecting = false
     const res = response.data
     if (res && typeof res === 'object' && 'code' in res) {
       if (res.code != 0) {

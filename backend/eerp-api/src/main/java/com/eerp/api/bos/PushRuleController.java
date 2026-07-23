@@ -28,7 +28,7 @@ public class PushRuleController {
         if (tgtBoCode != null && !tgtBoCode.isEmpty()) {
             wrapper.eq(MetaPushRule::getTgtBoCode, tgtBoCode);
         }
-        wrapper.orderByDesc(MetaPushRule::getCreateTime);
+        wrapper.orderByDesc(MetaPushRule::getId);
         return Result.ok(pushRuleService.list(wrapper));
     }
 

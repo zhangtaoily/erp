@@ -172,8 +172,26 @@ public class PushServiceImpl extends AbstractPushService {
         Map<String, Object> main = (Map<String, Object>) srcBill.getOrDefault("main", new HashMap<>());
         Map<String, Object> subs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
 
-        // 简化策略：按下推勾选的 lineId 过滤子表行
-        // 假设源单行在某个子实体中，按 lineId 匹配
+        // main scope（主表总量下推）：源"行"即为主表，PushLine.lineId 约定 = 源单 billId
+        if (isMainScope(rule)) {
+            List<Map<String, Object>> filtered = new ArrayList<>();
+            for (PushLine pushLine : ctx.getLines()) {
+                Object mainId = main.get("id");
+                if (mainId == null
+                        || pushLine.getLineId() == null
+                        || !mainId.toString().equals(String.valueOf(pushLine.getLineId()))) {
+                    continue;
+                }
+                if (!passFilterExpr(main, rule)) {
+                    continue;
+                }
+                filtered.add(main);
+                break; // 主表只有一行
+            }
+            return filtered;
+        }
+
+        // sub scope（子表明细下推，默认）：按下推勾选的 lineId 过滤子表行
         List<Map<String, Object>> allLines = new ArrayList<>();
         for (Object entityRows : subs.values()) {
             if (entityRows instanceof List) {
@@ -191,17 +209,8 @@ public class PushServiceImpl extends AbstractPushService {
             for (Map<String, Object> line : allLines) {
                 Object lineId = line.get("id");
                 if (lineId != null && lineId.toString().equals(String.valueOf(pushLine.getLineId()))) {
-                    // 应用 filter_expr（若配置）
-                    if (rule.getFilterExpr() != null && !rule.getFilterExpr().trim().isEmpty()) {
-                        ExprContext exprCtx = new ExprContext(line);
-                        try {
-                            Object result = exprEvaluator.evaluate(rule.getFilterExpr(), exprCtx);
-                            if (Boolean.FALSE.equals(result) || "false".equals(String.valueOf(result))) {
-                                continue; // 过滤掉
-                            }
-                        } catch (Exception e) {
-                            log.warn("filter_expr 求值失败，默认放行: {}", e.getMessage());
-                        }
+                    if (!passFilterExpr(line, rule)) {
+                        continue; // 过滤掉
                     }
                     filtered.add(line);
                     break;
@@ -209,6 +218,29 @@ public class PushServiceImpl extends AbstractPushService {
             }
         }
         return filtered;
+    }
+
+    /** 应用 filter_expr，返回 true 表示放行 */
+    private boolean passFilterExpr(Map<String, Object> line, MetaPushRule rule) {
+        if (rule.getFilterExpr() == null || rule.getFilterExpr().trim().isEmpty()) {
+            return true;
+        }
+        ExprContext exprCtx = new ExprContext(line);
+        try {
+            Object result = exprEvaluator.evaluate(rule.getFilterExpr(), exprCtx);
+            if (Boolean.FALSE.equals(result) || "false".equals(String.valueOf(result))) {
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            log.warn("filter_expr 求值失败，默认放行: {}", e.getMessage());
+            return true;
+        }
+    }
+
+    /** main scope = 主表总量下推；否则按子表明细下推 */
+    private boolean isMainScope(MetaPushRule rule) {
+        return rule != null && "main".equalsIgnoreCase(rule.getQtyFieldScope());
     }
 
     @Override
@@ -271,7 +303,49 @@ public class PushServiceImpl extends AbstractPushService {
             }
         }
 
-        // 子表字段映射（按下推勾选行生成目标子表行）
+        // main scope（主表总量下推）：qty_field 写到目标主表，子表行从源单全部 subs 携带
+        if (isMainScope(rule)) {
+            // 目标主表数量 = 本次下推总量（取 PushLine 之和）
+            BigDecimal totalPushQty = sumPushQty(ctx);
+            if (totalPushQty != null && rule.getQtyField() != null && !rule.getQtyField().isEmpty()) {
+                targetMain.put(rule.getQtyField(), totalPushQty);
+            }
+            // 源单主表 ID 回填到目标主表，便于追溯
+            Object srcMainId = srcMain.get("id");
+            if (srcMainId != null) {
+                targetMain.put("src_bill_id", srcMainId);
+            }
+
+            // 子表行：从源单全部 subs 携带（按下推子表字段映射）
+            List<Map<String, Object>> allSrcSubLines = collectAllSubLines(ctx);
+            for (Map<String, Object> srcLine : allSrcSubLines) {
+                Map<String, Object> targetLine = new LinkedHashMap<>();
+                for (FieldMapping m : mappings) {
+                    if (m.isMain || m.targetField == null) {
+                        continue;
+                    }
+                    Object value = resolveMappingValue(m, srcLine, srcMain);
+                    if (value != null) {
+                        targetLine.put(m.targetField, value);
+                    }
+                }
+                // 源行ID 回填（用于追溯）
+                targetLine.put("src_line_id", srcLine.get("id"));
+                targetSubLines.add(targetLine);
+            }
+
+            String tgtSubEntityCode = "default";
+            if (!targetSubLines.isEmpty()) {
+                targetSubs.put(tgtSubEntityCode, targetSubLines);
+            }
+
+            Map<String, Object> targetBill = new LinkedHashMap<>();
+            targetBill.put("main", targetMain);
+            targetBill.put("subs", targetSubs);
+            return targetBill;
+        }
+
+        // sub scope（默认）：子表字段映射按下推勾选行生成目标子表行
         for (Map<String, Object> srcLine : srcLines) {
             Map<String, Object> targetLine = new LinkedHashMap<>();
             for (FieldMapping m : mappings) {
@@ -309,6 +383,38 @@ public class PushServiceImpl extends AbstractPushService {
         return targetBill;
     }
 
+    /** 汇总 ctx.lines 中所有 pushQty */
+    private BigDecimal sumPushQty(PushContext ctx) {
+        if (ctx.getLines() == null || ctx.getLines().isEmpty()) {
+            return null;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (PushLine pl : ctx.getLines()) {
+            if (pl.getPushQty() != null) {
+                total = total.add(pl.getPushQty());
+            }
+        }
+        return total;
+    }
+
+    /** 收集源单全部子表行（main scope 下用于携带明细到目标单） */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> collectAllSubLines(PushContext ctx) {
+        Map<String, Object> srcBill = billDataAccessor.loadBill(ctx.getSrcBoCode(), ctx.getSrcBillId());
+        Map<String, Object> subs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
+        List<Map<String, Object>> allLines = new ArrayList<>();
+        for (Object entityRows : subs.values()) {
+            if (entityRows instanceof List) {
+                for (Object row : (List<?>) entityRows) {
+                    if (row instanceof Map) {
+                        allLines.add((Map<String, Object>) row);
+                    }
+                }
+            }
+        }
+        return allLines;
+    }
+
     @Override
     protected Long saveTargetBill(PushContext ctx, Map<String, Object> targetBillData) {
         // 调用 BillDataAccessor.saveBill 持久化目标单（pact_state=1 已创建）
@@ -324,10 +430,27 @@ public class PushServiceImpl extends AbstractPushService {
         }
         validateIdentifier(pushedField, "pushed_field");
 
-        // 解析源单主表名（用于 UPDATE 源行所在的子表）
-        // 简化实现：约定源行 ID 在源单子表，需要解析源单子表名
-        // 完整实现应通过 FormMetaCache 解析 src bo 的子表实体表名
-        // 此处通过 BillDataAccessor 加载源单据元数据解析
+        // main scope：回写到源主表（约定表名 = bo_code，WHERE id = srcBillId）
+        if (isMainScope(rule)) {
+            String srcMainTable = resolveSrcMainTable(ctx.getSrcBoCode());
+            if (srcMainTable == null) {
+                log.warn("无法解析源单主表名，跳过 pushed_field 回写");
+                return;
+            }
+            validateIdentifier(srcMainTable, "源主表名");
+            // main scope 下 pushLine.lineId 约定 = srcBillId；累加本次下推总量到主表
+            for (PushLine pushLine : ctx.getLines()) {
+                if (pushLine.getPushQty() == null) {
+                    continue;
+                }
+                String sql = "UPDATE `" + srcMainTable + "` SET `" + pushedField
+                        + "` = COALESCE(`" + pushedField + "`, 0) + ? WHERE `id` = ?";
+                jdbcTemplate.update(sql, pushLine.getPushQty(), pushLine.getLineId());
+            }
+            return;
+        }
+
+        // sub scope（默认）：回写到源子表
         Map<String, Object> srcBill = billDataAccessor.loadBill(ctx.getSrcBoCode(), ctx.getSrcBillId());
         Map<String, Object> subs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
 
@@ -348,6 +471,14 @@ public class PushServiceImpl extends AbstractPushService {
                     + "` = COALESCE(`" + pushedField + "`, 0) + ? WHERE `id` = ?";
             jdbcTemplate.update(sql, pushLine.getPushQty(), pushLine.getLineId());
         }
+    }
+
+    /** 解析源主表名（main scope 回写用），约定 = bo_code */
+    private String resolveSrcMainTable(String srcBoCode) {
+        if (srcBoCode == null || srcBoCode.isEmpty()) {
+            return null;
+        }
+        return srcBoCode;
     }
 
     // ==================== 内部工具方法 ====================

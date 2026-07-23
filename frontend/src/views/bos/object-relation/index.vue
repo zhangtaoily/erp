@@ -59,7 +59,7 @@
               <template #default="{ row }">
                 <span>{{ row.src_bo_code }}</span>
                 <el-icon class="arrow"><Right /></el-icon>
-                <span>{{ row.target_bo_code }}</span>
+                <span>{{ row.tgt_bo_code }}</span>
               </template>
             </el-table-column>
             <el-table-column label="允许合并" width="80" align="center">
@@ -207,7 +207,7 @@ function renderGraph() {
 
   // 下推目标对象（右侧）
   pushRules.value.forEach((rule, idx) => {
-    const targetBo = boMap.get(rule.target_bo_code)
+    const targetBo = boMap.get(rule.tgt_bo_code)
     const x = 680
     const y = 60 + idx * 80
     graph!.addNode({
@@ -217,9 +217,9 @@ function renderGraph() {
       height: nodeHeight,
       attrs: {
         body: { fill: '#fdf6ec', stroke: '#e6a23c', rx: 6, ry: 6 },
-        label: { text: targetBo?.bo_name || rule.target_bo_code, fill: '#333', fontSize: 12 }
+        label: { text: targetBo?.bo_name || rule.tgt_bo_code, fill: '#333', fontSize: 12 }
       },
-      data: { boCode: rule.target_bo_code }
+      data: { boCode: rule.tgt_bo_code }
     })
     // 连线：当前对象 → 下推目标
     graph!.addEdge({

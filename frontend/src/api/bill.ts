@@ -19,7 +19,16 @@ export const billApi = {
   save: (boCode: string, data: any) => request.post<any>(`/bill/${boCode}`, data),
   operate: (boCode: string, id: string, action: string, data?: any) =>
     request.post<any>(`/bill/${boCode}/${id}/${action}`, data),
-  delete: (boCode: string, id: string) => request.delete(`/bill/${boCode}/${id}`)
+  delete: (boCode: string, id: string) => request.delete(`/bill/${boCode}/${id}`),
+  /** 下推（POST /bill/{boCode}/push，对齐后端 BillController.push） */
+  push: (boCode: string, data: {
+    src_bill_id: string | number
+    tgt_bo_code?: string
+    rule_code: string
+    lines: { line_id: string | number; push_qty: number }[]
+    allow_merge?: boolean
+    allow_split?: boolean
+  }) => request.post<any>(`/bill/${boCode}/push`, data)
 }
 
 /** 将参数转换为 conditions 数组（兼容 old flat params 和 new conditions） */

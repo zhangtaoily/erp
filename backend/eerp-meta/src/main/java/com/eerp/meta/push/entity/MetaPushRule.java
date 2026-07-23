@@ -43,6 +43,9 @@ public class MetaPushRule extends BaseEntity {
     /** 已下推量回写字段 */
     private String pushedField;
 
+    /** 数量字段归属层级：main=主表总量下推，sub=子表明细下推（默认 sub） */
+    private String qtyFieldScope;
+
     /** 是否允许合并下推（多源单→一目标单） */
     private Integer allowMerge;
 

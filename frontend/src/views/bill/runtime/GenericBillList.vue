@@ -245,6 +245,14 @@
         @current-change="loadData"
       />
     </div>
+
+    <!-- 下推对话框 -->
+    <PushDialog
+      v-model="pushVisible"
+      :src-bo-code="boCode"
+      :src-bill-id="pushBillId"
+      @success="onPushSuccess"
+    />
   </div>
 </template>
 
@@ -254,6 +262,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import BillToolbar from '@/components/BillToolbar/index.vue'
+import PushDialog from '@/components/PushDialog/index.vue'
 import { billApi } from '@/api/bill'
 import { listConfigApi } from '@/api/list'
 import { entityApi } from '@/api/bo'
@@ -269,6 +278,10 @@ const columns = ref<ListColumn[]>([])
 const entities = ref<FormEntity[]>([])
 const tableData = ref<any[]>([])
 const selectedRows = ref<any[]>([])
+
+// 下推对话框
+const pushVisible = ref(false)
+const pushBillId = ref<string>('')
 
 // ========== 查询字段（动态加载） ==========
 const queryFields = ref<QueryField[]>([])
@@ -574,6 +587,11 @@ function onSelectionChange(sel: any[]) {
   selectedRows.value = sel
 }
 
+// 下推成功后刷新列表（已下推量回写）
+function onPushSuccess() {
+  loadData()
+}
+
 async function onToolbarClick(buttonCode: string) {
   switch (buttonCode) {
     case 'add':
@@ -599,6 +617,14 @@ async function onToolbarClick(buttonCode: string) {
         return
       }
       router.push(`/bill/${boCode.value}/${selectedRows.value[0].id}?tab=trace`)
+      break
+    case 'push':
+      if (selectedRows.value.length !== 1) {
+        ElMessage.warning('请选择一行进行下推')
+        return
+      }
+      pushBillId.value = String(selectedRows.value[0].id)
+      pushVisible.value = true
       break
     case 'print':
       if (!selectedRows.value.length) {

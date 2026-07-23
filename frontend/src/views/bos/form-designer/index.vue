@@ -138,11 +138,11 @@
                         <span class="col-code">{{ f.field_code }}</span>
                         <el-icon v-if="f.is_system" class="system-icon"><Lock /></el-icon>
                         <el-icon v-if="f.is_required" class="required-icon"><Star /></el-icon>
-                        <el-button
-                          v-if="!f.is_system"
-                          link type="danger" size="small"
-                          @click.stop="onDeleteField(sub, f)"
-                        ><el-icon><Delete /></el-icon></el-button>
+                        <template v-if="!f.is_system">
+                          <el-button link size="small" class="col-move-btn" title="左移" @click.stop="onMoveField(sub, f, -1)"><el-icon><ArrowLeft /></el-icon></el-button>
+                          <el-button link size="small" class="col-move-btn" title="右移" @click.stop="onMoveField(sub, f, 1)"><el-icon><ArrowRight /></el-icon></el-button>
+                          <el-button link type="danger" size="small" @click.stop="onDeleteField(sub, f)"><el-icon><Delete /></el-icon></el-button>
+                        </template>
                       </span>
                     </template>
                     <template #default>
@@ -198,11 +198,11 @@
                         <span class="col-code">{{ f.field_code }}</span>
                         <el-icon v-if="f.is_system" class="system-icon"><Lock /></el-icon>
                         <el-icon v-if="f.is_required" class="required-icon"><Star /></el-icon>
-                        <el-button
-                          v-if="!f.is_system"
-                          link type="danger" size="small"
-                          @click.stop="onDeleteField(gc, f)"
-                        ><el-icon><Delete /></el-icon></el-button>
+                        <template v-if="!f.is_system">
+                          <el-button link size="small" class="col-move-btn" title="左移" @click.stop="onMoveField(gc, f, -1)"><el-icon><ArrowLeft /></el-icon></el-button>
+                          <el-button link size="small" class="col-move-btn" title="右移" @click.stop="onMoveField(gc, f, 1)"><el-icon><ArrowRight /></el-icon></el-button>
+                          <el-button link type="danger" size="small" @click.stop="onDeleteField(gc, f)"><el-icon><Delete /></el-icon></el-button>
+                        </template>
                       </span>
                     </template>
                     <template #default>
@@ -501,7 +501,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, Star, Lock, Document, EditPen, Calendar, Picture, Files, Tickets, Money, Histogram, Box, Grid, Operation, View } from '@element-plus/icons-vue'
+import { Plus, Delete, Star, Lock, Document, EditPen, Calendar, Picture, Files, Tickets, Money, Histogram, Box, Grid, Operation, View, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { entityApi, fieldApi, formLayoutApi, type FormLayout } from '@/api/bo'
 import { formApi } from '@/api/form'
 import BoPicker from '@/components/BoPicker/index.vue'
@@ -817,6 +817,24 @@ function onDeleteField(entity: FormEntity, field: FormField) {
     entity.fields.splice(idx, 1)
     if (selectedFieldId.value === field.id) selectedFieldId.value = ''
   }
+}
+
+// 子表/孙表字段顺序调整（左移=前移 / 右移=后移，按可见字段顺序交换并重算 sort_index）
+function onMoveField(entity: FormEntity, field: FormField, dir: -1 | 1) {
+  if (!entity.fields || entity.fields.length === 0) return
+  const visibleFields = entity.fields.filter(x => !x.is_hidden)
+  const visIdx = visibleFields.findIndex(f => f.id === field.id)
+  if (visIdx < 0) return
+  const targetVisIdx = visIdx + dir
+  if (targetVisIdx < 0 || targetVisIdx >= visibleFields.length) return
+  const targetField = visibleFields[targetVisIdx]
+  const realIdx = entity.fields.findIndex(f => f.id === field.id)
+  const targetRealIdx = entity.fields.findIndex(f => f.id === targetField.id)
+  if (realIdx < 0 || targetRealIdx < 0) return
+  const arr = entity.fields
+  ;[arr[realIdx], arr[targetRealIdx]] = [arr[targetRealIdx], arr[realIdx]]
+  // 重算 sort_index，保证持久化时顺序一致
+  arr.forEach((f, i) => { f.sort_index = i })
 }
 
 async function onDeleteEntity(entity: FormEntity) {
@@ -1227,20 +1245,38 @@ onMounted(async () => {
 .design-table {
   :deep(th) { padding: 4px 6px !important; }
   .design-col-header {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 3px;
     cursor: pointer;
     padding: 2px 4px;
     border-radius: 3px;
-    white-space: nowrap;
+    width: 100%;
     &:hover { background: #ecf5ff; }
     &.selected { background: #ecf5ff; border-color: #1564ff; box-shadow: 0 0 0 1px #1564ff; }
     &.system { opacity: 0.7; }
-    .col-name { font-size: 12px; font-weight: 500; }
-    .col-code { font-size: 10px; color: #909399; }
-    .system-icon { color: #c0c4cc; font-size: 11px; }
-    .required-icon { color: #f56c6c; font-size: 11px; }
+    .col-name {
+      font-size: 12px;
+      font-weight: 500;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .col-code { font-size: 10px; color: #909399; flex-shrink: 0; }
+    .system-icon { color: #c0c4cc; font-size: 11px; flex-shrink: 0; }
+    .required-icon { color: #f56c6c; font-size: 11px; flex-shrink: 0; }
+    .col-move-btn {
+      padding: 0 2px;
+      height: auto;
+      min-height: 0;
+      color: #909399;
+      flex-shrink: 0;
+      &:hover { color: #1564ff; }
+      .el-icon { font-size: 11px; }
+    }
+    :deep(.el-button) { flex-shrink: 0; }
   }
   .sample-cell {
     color: #c0c4cc;

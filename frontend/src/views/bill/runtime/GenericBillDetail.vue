@@ -87,6 +87,14 @@
         </el-tabs>
       </div>
     </div>
+
+    <!-- 下推对话框 -->
+    <PushDialog
+      v-model="pushVisible"
+      :src-bo-code="boCode"
+      :src-bill-id="String(formData.id)"
+      @success="onPushSuccess"
+    />
   </div>
 </template>
 
@@ -95,6 +103,7 @@ import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import BillToolbar from '@/components/BillToolbar/index.vue'
+import PushDialog from '@/components/PushDialog/index.vue'
 import MasterDetailEditor from '@/components/MasterDetailEditor/index.vue'
 import AttachmentUpload from '@/components/AttachmentUpload/index.vue'
 import BillTraceTree from '@/components/BillTraceTree/index.vue'
@@ -116,6 +125,9 @@ const formData = reactive<Record<string, any>>({})
 const activeSideTab = ref('info')
 const layoutName = ref('')
 const layoutVersion = ref(0)
+
+// 下推对话框
+const pushVisible = ref(false)
 
 const mode = computed<'view' | 'edit' | 'add'>(() => {
   if (isNew.value) return 'add'
@@ -388,7 +400,11 @@ async function onToolbarClick(buttonCode: string) {
       await handleDelete()
       break
     case 'push':
-      ElMessage.info('下推功能请从列表页或专用入口操作')
+      if (!formData.id) {
+        ElMessage.warning('请先保存单据再下推')
+        return
+      }
+      pushVisible.value = true
       break
     case 'copy':
       if (!formData.id) {
@@ -413,6 +429,11 @@ async function onToolbarClick(buttonCode: string) {
     default:
       ElMessage.info(`操作：${buttonCode}`)
   }
+}
+
+// 下推成功后刷新详情（已下推量回写）
+function onPushSuccess() {
+  if (!isNew.value) loadDetail()
 }
 
 async function handleSave(isDraft: boolean) {
