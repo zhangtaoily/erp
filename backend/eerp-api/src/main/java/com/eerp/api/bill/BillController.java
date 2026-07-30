@@ -244,6 +244,22 @@ public class BillController {
     }
 
     /**
+     * 下推转换（不保存目标单，仅返回转换后的目标单数据）。
+     * <p>前端在目标单据新建页面加载此数据，用户修改后手动保存。</p>
+     *
+     * <pre>POST /api/bill/{boCode}/convert
+     * body: {"src_bill_id": 123, "rule_code": "test", "line_ids": ["456","789"]}</pre>
+     */
+    @PostMapping("/convert")
+    public Result<Map<String, Object>> convert(@PathVariable String boCode, @RequestBody ConvertRequest req) {
+        if (req == null || req.getSrcBillId() == null) {
+            throw new ServiceException("BILL_001", "下推转换请求缺少源单ID");
+        }
+        Map<String, Object> converted = pushService.convert(boCode, req.getSrcBillId(), req.getRuleCode(), req.getLineIds());
+        return Result.ok(converted);
+    }
+
+    /**
      * 单据追溯树（对齐设计文档 02 §3.6）。
      *
      * @param direction 方向：up=上查源单 / down=下查目标单（默认 down）
@@ -340,5 +356,15 @@ public class BillController {
         private List<PushLine> lines;
         private Boolean allowMerge;
         private Boolean allowSplit;
+    }
+
+    /**
+     * 下推转换请求体（不保存，仅返回转换后的目标单数据）。
+     */
+    @lombok.Data
+    public static class ConvertRequest {
+        private Long srcBillId;
+        private String ruleCode;
+        private List<String> lineIds;
     }
 }

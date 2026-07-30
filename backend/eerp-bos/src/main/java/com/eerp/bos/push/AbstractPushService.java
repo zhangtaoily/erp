@@ -43,6 +43,19 @@ public abstract class AbstractPushService {
     public abstract PushResult push(PushContext ctx);
 
     /**
+     * 下推转换（不保存目标单、不回写源单）。
+     * <p>按规则将源单数据映射为目标单格式，返回内存中的目标单数据，
+     * 供前端目标单据页面加载后由用户修改并手动保存。</p>
+     *
+     * @param srcBoCode 源业务对象编码
+     * @param srcBillId 源单据ID
+     * @param ruleCode  下推规则编码
+     * @param lineIds   勾选的源行ID列表（null 或空表示全部行）
+     * @return 目标单数据（{main, subs, _push_meta}）
+     */
+    public abstract Map<String, Object> convert(String srcBoCode, Long srcBillId, String ruleCode, List<String> lineIds);
+
+    /**
      * 加载下推规则。
      *
      * @param ruleCode 规则编码

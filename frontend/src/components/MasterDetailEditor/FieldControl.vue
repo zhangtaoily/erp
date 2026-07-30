@@ -21,7 +21,14 @@
     @update:model-value="(v: string) => emit('update:modelValue', v)"
   />
 
-  <!-- number → el-input-number -->
+  <!-- number → el-input-number；但 Long ID 超出 JS 安全整数范围时降级为 el-input（只读）避免精度丢失 -->
+  <el-input
+    v-else-if="field.ctrl_type === 'number' && isLargeIdString"
+    :model-value="modelValue"
+    :disabled="isDisabled"
+    :size="size"
+    readonly
+  />
   <el-input-number
     v-else-if="field.ctrl_type === 'number'"
     :model-value="modelValue"
@@ -183,6 +190,16 @@ const emit = defineEmits<{
 
 // 合并外部 disabled 与字段元数据 is_readonly
 const isDisabled = computed(() => props.disabled || !!props.field.is_readonly)
+
+/** 检测值是否为超出 JS 安全整数范围的 Long ID 字符串（如 Snowflake ID），
+ *  避免传入 el-input-number 导致精度丢失（被截断为 Number.MAX_SAFE_INTEGER）。 */
+const isLargeIdString = computed(() => {
+  const v = props.modelValue
+  if (typeof v === 'string' && /^\d+$/.test(v)) {
+    return Number(v) > Number.MAX_SAFE_INTEGER
+  }
+  return false
+})
 
 // ============ 枚举选项（select 控件）============
 function getEnumOptions(field: FormField) {

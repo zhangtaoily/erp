@@ -142,7 +142,10 @@ export interface PushRule {
 export interface PushFieldMapping {
   src_field: string
   target_field: string
-  is_main: boolean         // 主表映射 or 子表映射
+  is_main: boolean         // 向后兼容
+  level?: 'main' | 'sub' | 'grandchild'  // 映射层级：main主表/sub子表/grandchild孙表
+  src_entity_code?: string  // 源字段所属实体编码（用于消除同名字段歧义）
+  tgt_entity_code?: string  // 目标字段所属实体编码
   transform_expr?: string  // 转换表达式
   checked?: boolean        // 是否启用此映射（前端勾选用，不持久化）
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -35,7 +36,7 @@ public class CodeGenerateService {
     /**
      * 生成业务对象编码
      */
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public String generateCode(String boCode) {
         return generateCode(boCode, 0L);
     }

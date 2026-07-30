@@ -28,7 +28,14 @@ export const billApi = {
     lines: { line_id: string | number; push_qty: number }[]
     allow_merge?: boolean
     allow_split?: boolean
-  }) => request.post<any>(`/bill/${boCode}/push`, data)
+  }) => request.post<any>(`/bill/${boCode}/push`, data),
+
+  /** 下推转换（POST /bill/{boCode}/convert，不保存，仅返回转换后的目标单数据） */
+  convert: (boCode: string, data: {
+    src_bill_id: string | number
+    rule_code: string
+    line_ids?: string[]
+  }) => request.post<any>(`/bill/${boCode}/convert`, data)
 }
 
 /** 将参数转换为 conditions 数组（兼容 old flat params 和 new conditions） */

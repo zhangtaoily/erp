@@ -154,6 +154,97 @@ public class PushServiceImpl extends AbstractPushService {
         return PushResult.ok(targetBillId, linkCount);
     }
 
+    /**
+     * 下推转换（不保存目标单、不回写源单）。
+     * 按规则将源单数据映射为目标单格式，返回内存数据供前端目标单页面加载。
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> convert(String srcBoCode, Long srcBillId, String ruleCode, List<String> lineIds) {
+        MetaPushRule rule = loadRule(ruleCode);
+        if (rule == null) {
+            throw new ServiceException("PUSH_RULE_NOT_FOUND", "下推规则[" + ruleCode + "]不存在或未启用");
+        }
+
+        Map<String, Object> srcBill = billDataAccessor.loadBill(srcBoCode, srcBillId);
+        if (srcBill == null || srcBill.isEmpty()) {
+            throw new ServiceException("BILL_NOT_FOUND", "源单据[" + srcBoCode + ":" + srcBillId + "]不存在");
+        }
+
+        PushContext ctx = new PushContext();
+        ctx.setSrcBoCode(srcBoCode);
+        ctx.setSrcBillId(srcBillId);
+        ctx.setTgtBoCode(rule.getTgtBoCode());
+        ctx.setRuleCode(ruleCode);
+
+        List<Map<String, Object>> srcLines = new ArrayList<>();
+
+        if (isMainScope(rule)) {
+            // main scope：源"行"为主表，PushLine.lineId = 源单 billId
+            Map<String, Object> main = (Map<String, Object>) srcBill.getOrDefault("main", new HashMap<>());
+            srcLines.add(main);
+            PushLine pl = new PushLine();
+            Object mainId = main.get("id");
+            if (mainId != null) {
+                pl.setLineId(Long.valueOf(String.valueOf(mainId)));
+            }
+            pl.setPushQty(toBigDecimal(main.get(rule.getQtyField())));
+            ctx.getLines().add(pl);
+        } else {
+            // sub scope：收集子表行（排除孙表），按 lineIds 过滤
+            Map<String, Object> subs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
+            List<String> subEntityCodes = resolveEntityCodesByType(srcBoCode, "sub");
+            for (Map.Entry<String, Object> entry : subs.entrySet()) {
+                // 只收集子表实体，跳过孙表
+                if (!subEntityCodes.isEmpty() && !subEntityCodes.contains(entry.getKey())) {
+                    continue;
+                }
+                Object entityRows = entry.getValue();
+                if (entityRows instanceof List) {
+                    for (Object row : (List<?>) entityRows) {
+                        if (!(row instanceof Map)) continue;
+                        Map<String, Object> line = (Map<String, Object>) row;
+                        Object lineId = line.get("id");
+                        if (lineId == null) continue;
+                        String lineIdStr = String.valueOf(lineId);
+                        if (lineIds != null && !lineIds.isEmpty() && !lineIds.contains(lineIdStr)) {
+                            continue;
+                        }
+                        srcLines.add(line);
+                        PushLine pl = new PushLine();
+                        pl.setLineId(Long.valueOf(lineIdStr));
+                        pl.setPushQty(toBigDecimal(line.get(rule.getQtyField())));
+                        ctx.getLines().add(pl);
+                    }
+                }
+            }
+        }
+
+        // 字段映射生成目标单数据（不保存、不回写）
+        Map<String, Object> targetData = mapToTarget(ctx, srcLines, rule);
+
+        // 附加下推元信息（供前端保存时创建关联 + 回写）
+        Map<String, Object> pushMeta = new LinkedHashMap<>();
+        pushMeta.put("src_bo_code", srcBoCode);
+        pushMeta.put("src_bill_id", srcBillId);
+        pushMeta.put("rule_code", ruleCode);
+        pushMeta.put("tgt_bo_code", rule.getTgtBoCode());
+        Map<String, Object> result = new LinkedHashMap<>(targetData);
+        result.put("_push_meta", pushMeta);
+        return result;
+    }
+
+    /** 安全 BigDecimal 转换 */
+    private BigDecimal toBigDecimal(Object val) {
+        if (val == null) return null;
+        if (val instanceof BigDecimal) return (BigDecimal) val;
+        try {
+            return new BigDecimal(String.valueOf(val));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Override
     protected MetaPushRule loadRule(String ruleCode) {
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MetaPushRule> wrapper =
@@ -192,10 +283,15 @@ public class PushServiceImpl extends AbstractPushService {
         }
 
         // sub scope（子表明细下推，默认）：按下推勾选的 lineId 过滤子表行
+        List<String> subEntityCodes = resolveEntityCodesByType(ctx.getSrcBoCode(), "sub");
         List<Map<String, Object>> allLines = new ArrayList<>();
-        for (Object entityRows : subs.values()) {
-            if (entityRows instanceof List) {
-                for (Object row : (List<?>) entityRows) {
+        for (Map.Entry<String, Object> entry : subs.entrySet()) {
+            // 只收集子表实体，跳过孙表
+            if (!subEntityCodes.isEmpty() && !subEntityCodes.contains(entry.getKey())) {
+                continue;
+            }
+            if (entry.getValue() instanceof List) {
+                for (Object row : (List<?>) entry.getValue()) {
                     if (row instanceof Map) {
                         allLines.add((Map<String, Object>) row);
                     }
@@ -284,6 +380,17 @@ public class PushServiceImpl extends AbstractPushService {
     protected Map<String, Object> mapToTarget(PushContext ctx, List<Map<String, Object>> srcLines, MetaPushRule rule) {
         List<FieldMapping> mappings = parseFieldMapping(rule.getFieldMappingJson());
 
+        // 按层级分离映射
+        List<FieldMapping> mainMappings = new ArrayList<>();
+        List<FieldMapping> subMappings = new ArrayList<>();
+        List<FieldMapping> grandchildMappings = new ArrayList<>();
+        for (FieldMapping m : mappings) {
+            String lvl = m.getLevel();
+            if ("main".equals(lvl)) mainMappings.add(m);
+            else if ("grandchild".equals(lvl)) grandchildMappings.add(m);
+            else subMappings.add(m);
+        }
+
         Map<String, Object> targetMain = new LinkedHashMap<>();
         Map<String, Object> targetSubs = new LinkedHashMap<>();
         List<Map<String, Object>> targetSubLines = new ArrayList<>();
@@ -293,10 +400,8 @@ public class PushServiceImpl extends AbstractPushService {
                 .loadBill(ctx.getSrcBoCode(), ctx.getSrcBillId())
                 .getOrDefault("main", new HashMap<>());
 
-        for (FieldMapping m : mappings) {
-            if (!m.isMain || m.targetField == null) {
-                continue;
-            }
+        for (FieldMapping m : mainMappings) {
+            if (m.targetField == null) continue;
             Object value = resolveMappingValue(m, srcMain, null);
             if (value != null) {
                 targetMain.put(m.targetField, value);
@@ -320,24 +425,23 @@ public class PushServiceImpl extends AbstractPushService {
             List<Map<String, Object>> allSrcSubLines = collectAllSubLines(ctx);
             for (Map<String, Object> srcLine : allSrcSubLines) {
                 Map<String, Object> targetLine = new LinkedHashMap<>();
-                for (FieldMapping m : mappings) {
-                    if (m.isMain || m.targetField == null) {
-                        continue;
-                    }
+                for (FieldMapping m : subMappings) {
+                    if (m.targetField == null) continue;
                     Object value = resolveMappingValue(m, srcLine, srcMain);
                     if (value != null) {
                         targetLine.put(m.targetField, value);
                     }
                 }
-                // 源行ID 回填（用于追溯）
                 targetLine.put("src_line_id", srcLine.get("id"));
                 targetSubLines.add(targetLine);
             }
 
-            String tgtSubEntityCode = "default";
+            String tgtSubEntityCode = resolveTgtSubEntityCode(ctx.getTgtBoCode());
             if (!targetSubLines.isEmpty()) {
                 targetSubs.put(tgtSubEntityCode, targetSubLines);
             }
+            // 孙表数据映射到 targetSubs（flat list，与 loadBill 结构一致）
+            mapGrandchildToTarget(ctx, targetSubs, grandchildMappings, srcMain);
 
             Map<String, Object> targetBill = new LinkedHashMap<>();
             targetBill.put("main", targetMain);
@@ -348,10 +452,8 @@ public class PushServiceImpl extends AbstractPushService {
         // sub scope（默认）：子表字段映射按下推勾选行生成目标子表行
         for (Map<String, Object> srcLine : srcLines) {
             Map<String, Object> targetLine = new LinkedHashMap<>();
-            for (FieldMapping m : mappings) {
-                if (m.isMain || m.targetField == null) {
-                    continue;
-                }
+            for (FieldMapping m : subMappings) {
+                if (m.targetField == null) continue;
                 Object value = resolveMappingValue(m, srcLine, srcMain);
                 if (value != null) {
                     targetLine.put(m.targetField, value);
@@ -360,22 +462,21 @@ public class PushServiceImpl extends AbstractPushService {
             // 关联本次下推量
             PushLine pushLine = findPushLine(ctx, srcLine);
             if (pushLine != null && pushLine.getPushQty() != null) {
-                // 按 qty_field 配置目标单数量字段
                 if (rule.getQtyField() != null && !rule.getQtyField().isEmpty()) {
                     targetLine.put(rule.getQtyField(), pushLine.getPushQty());
                 }
             }
-            // 源行ID 回填（用于追溯）
             targetLine.put("src_line_id", srcLine.get("id"));
             targetSubLines.add(targetLine);
         }
 
-        // 目标子表实体编码：约定为第一个非主实体的 entityCode（简化实现）
-        // 完整实现应通过 FormMetaCache 解析目标 bo 的子表实体编码
-        String tgtSubEntityCode = "default";
+        // 目标子表实体编码：从 meta_form_entity 表解析目标 BO 的第一个子表实体编码
+        String tgtSubEntityCode = resolveTgtSubEntityCode(ctx.getTgtBoCode());
         if (!targetSubLines.isEmpty()) {
             targetSubs.put(tgtSubEntityCode, targetSubLines);
         }
+        // 孙表数据映射到 targetSubs（flat list，与 loadBill 结构一致）
+        mapGrandchildToTarget(ctx, targetSubs, grandchildMappings, srcMain);
 
         Map<String, Object> targetBill = new LinkedHashMap<>();
         targetBill.put("main", targetMain);
@@ -397,15 +498,20 @@ public class PushServiceImpl extends AbstractPushService {
         return total;
     }
 
-    /** 收集源单全部子表行（main scope 下用于携带明细到目标单） */
+    /** 收集源单全部子表行（排除孙表，main scope 下用于携带明细到目标单） */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> collectAllSubLines(PushContext ctx) {
         Map<String, Object> srcBill = billDataAccessor.loadBill(ctx.getSrcBoCode(), ctx.getSrcBillId());
         Map<String, Object> subs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
+        // 只收集子表实体（entity_type='sub'），排除孙表
+        List<String> subCodes = resolveEntityCodesByType(ctx.getSrcBoCode(), "sub");
         List<Map<String, Object>> allLines = new ArrayList<>();
-        for (Object entityRows : subs.values()) {
-            if (entityRows instanceof List) {
-                for (Object row : (List<?>) entityRows) {
+        for (Map.Entry<String, Object> entry : subs.entrySet()) {
+            if (!subCodes.isEmpty() && !subCodes.contains(entry.getKey())) {
+                continue; // 跳过孙表实体
+            }
+            if (entry.getValue() instanceof List) {
+                for (Object row : (List<?>) entry.getValue()) {
                     if (row instanceof Map) {
                         allLines.add((Map<String, Object>) row);
                     }
@@ -413,6 +519,120 @@ public class PushServiceImpl extends AbstractPushService {
             }
         }
         return allLines;
+    }
+
+    /** 查询 BO 指定层级的实体编码列表（用 entity_level 更可靠：0=主/1=子/2=孙） */
+    private List<String> resolveEntityCodesByType(String boCode, String entityType) {
+        int level = "main".equals(entityType) ? 0 : "grandchild".equals(entityType) ? 2 : 1;
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                    "SELECT entity_code FROM meta_form_entity WHERE bo_code = ? AND entity_level = ?",
+                    boCode, level
+            );
+            List<String> codes = new ArrayList<>();
+            for (Map<String, Object> row : rows) {
+                Object code = row.get("entity_code");
+                if (code != null) codes.add(String.valueOf(code));
+            }
+            return codes;
+        } catch (Exception e) {
+            log.warn("解析实体编码失败[bo={}, type={}]: {}", boCode, entityType, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 将孙表数据映射到目标 subs（与 loadBill 返回结构一致：subs[gc_entity_code] = flat list）。
+     * 使用目标 BO 的孙表 entity_code 作为 key，目标 BO 的 link_field 存关联值。
+     * 前端 flattenBillData 会按目标 BO 的 link_field 自动嵌套到子表行中。
+     */
+    @SuppressWarnings("unchecked")
+    private void mapGrandchildToTarget(PushContext ctx, Map<String, Object> targetSubs,
+                                       List<FieldMapping> grandchildMappings, Map<String, Object> srcMain) {
+        // 获取源 BO 的孙表实体信息
+        List<Map<String, Object>> srcGcEntities = queryGrandchildEntities(ctx.getSrcBoCode());
+        if (srcGcEntities.isEmpty()) return;
+
+        // 获取目标 BO 的孙表实体信息（用于 key 和 link_field）
+        List<Map<String, Object>> tgtGcEntities = queryGrandchildEntities(ctx.getTgtBoCode());
+
+        // 加载源单据的 subs（含孙表数据）
+        Map<String, Object> srcBill = billDataAccessor.loadBill(ctx.getSrcBoCode(), ctx.getSrcBillId());
+        Map<String, Object> srcSubs = (Map<String, Object>) srcBill.getOrDefault("subs", new HashMap<>());
+
+        for (int i = 0; i < srcGcEntities.size(); i++) {
+            Map<String, Object> srcGcEntity = srcGcEntities.get(i);
+            String srcGcCode = String.valueOf(srcGcEntity.get("entity_code"));
+            String srcGcLink = String.valueOf(srcGcEntity.get("link_field"));
+            if ("null".equals(srcGcLink)) srcGcLink = "";
+
+            // 目标孙表实体：优先按 entity_code 匹配，否则按顺序对应
+            String tgtGcCode = srcGcCode;
+            String tgtGcLink = srcGcLink;
+            Map<String, Object> matchedTgt = null;
+            for (Map<String, Object> t : tgtGcEntities) {
+                if (String.valueOf(t.get("entity_code")).equals(srcGcCode)) {
+                    matchedTgt = t;
+                    break;
+                }
+            }
+            if (matchedTgt != null) {
+                tgtGcCode = String.valueOf(matchedTgt.get("entity_code"));
+                tgtGcLink = String.valueOf(matchedTgt.get("link_field"));
+            } else if (i < tgtGcEntities.size()) {
+                Map<String, Object> tgtEntity = tgtGcEntities.get(i);
+                tgtGcCode = String.valueOf(tgtEntity.get("entity_code"));
+                tgtGcLink = String.valueOf(tgtEntity.get("link_field"));
+            }
+            if ("null".equals(tgtGcLink)) tgtGcLink = "";
+
+            List<Map<String, Object>> srcGcRows = (List<Map<String, Object>>) srcSubs.getOrDefault(srcGcCode, new ArrayList<>());
+            if (srcGcRows.isEmpty()) continue;
+
+            List<Map<String, Object>> tgtGcRows = new ArrayList<>();
+            for (Map<String, Object> srcGcRow : srcGcRows) {
+                Map<String, Object> tgtGcRow;
+                if (grandchildMappings.isEmpty()) {
+                    tgtGcRow = new LinkedHashMap<>(srcGcRow);
+                } else {
+                    tgtGcRow = new LinkedHashMap<>();
+                    for (FieldMapping m : grandchildMappings) {
+                        if (m.targetField == null) continue;
+                        Object value = resolveMappingValue(m, srcGcRow, srcMain);
+                        if (value != null) {
+                            tgtGcRow.put(m.targetField, value);
+                        }
+                    }
+                }
+                // 设置目标 link_field（确保前端能按目标 BO 的 link_field 嵌套到子表行）
+                Object linkValue = srcGcLink.isEmpty() ? null : srcGcRow.get(srcGcLink);
+                if (linkValue != null) {
+                    if (!srcGcLink.isEmpty() && !tgtGcRow.containsKey(srcGcLink)) {
+                        tgtGcRow.put(srcGcLink, linkValue);
+                    }
+                    if (!tgtGcLink.isEmpty() && !tgtGcLink.equals(srcGcLink) && !tgtGcRow.containsKey(tgtGcLink)) {
+                        tgtGcRow.put(tgtGcLink, linkValue);
+                    }
+                }
+                tgtGcRow.put("src_line_id", srcGcRow.get("id"));
+                tgtGcRows.add(tgtGcRow);
+            }
+            // 用目标 BO 的 entity_code 作为 key
+            targetSubs.put(tgtGcCode, tgtGcRows);
+        }
+    }
+
+    /** 查询 BO 的孙表实体信息（entity_code, link_field），用 entity_level=2 更可靠 */
+    private List<Map<String, Object>> queryGrandchildEntities(String boCode) {
+        try {
+            return jdbcTemplate.queryForList(
+                    "SELECT entity_code, link_field FROM meta_form_entity WHERE bo_code = ? AND entity_level = 2",
+                    boCode
+            );
+        } catch (Exception e) {
+            log.warn("解析孙表实体信息失败[bo={}]: {}", boCode, e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     @Override
@@ -543,6 +763,28 @@ public class PushServiceImpl extends AbstractPushService {
         return srcBoCode + "_goods";
     }
 
+    /** 解析目标 BO 的第一个子表实体编码（用于 subs key，对齐前端 flattenBillData） */
+    private String resolveTgtSubEntityCode(String tgtBoCode) {
+        if (tgtBoCode == null || tgtBoCode.isEmpty()) {
+            return "default";
+        }
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                    "SELECT entity_code FROM meta_form_entity WHERE bo_code = ? AND entity_level = 1 ORDER BY sort_index LIMIT 1",
+                    tgtBoCode
+            );
+            if (!rows.isEmpty()) {
+                Object code = rows.get(0).get("entity_code");
+                if (code != null) {
+                    return String.valueOf(code);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析目标子表实体编码失败[bo={}]: {}", tgtBoCode, e.getMessage());
+        }
+        return "default";
+    }
+
     private Object resolveMappingValue(FieldMapping m, Map<String, Object> srcLine, Map<String, Object> srcMain) {
         if (m.transformExpr != null && !m.transformExpr.trim().isEmpty()) {
             // 转换表达式求值：context 含 $src（源行）+ $main（源主表）
@@ -591,8 +833,11 @@ public class PushServiceImpl extends AbstractPushService {
     public static class FieldMapping {
         public String srcField;
         public String targetField;
-        public boolean isMain;
+        public boolean isMain;  // 向后兼容，新数据用 level
+        public String level;    // main/sub/grandchild
         public String transformExpr;
+        public String srcEntityCode;  // 源字段所属实体编码（消除同名字段歧义）
+        public String tgtEntityCode;  // 目标字段所属实体编码
 
         public String getSrcField() { return srcField; }
         public void setSrcField(String srcField) { this.srcField = srcField; }
@@ -600,7 +845,17 @@ public class PushServiceImpl extends AbstractPushService {
         public void setTargetField(String targetField) { this.targetField = targetField; }
         public boolean isMain() { return isMain; }
         public void setMain(boolean main) { isMain = main; }
+        /** 优先用 level，为空时从 isMain 推断（向后兼容旧数据） */
+        public String getLevel() {
+            if (level != null && !level.isEmpty()) return level;
+            return isMain ? "main" : "sub";
+        }
+        public void setLevel(String level) { this.level = level; }
         public String getTransformExpr() { return transformExpr; }
         public void setTransformExpr(String transformExpr) { this.transformExpr = transformExpr; }
+        public String getSrcEntityCode() { return srcEntityCode; }
+        public void setSrcEntityCode(String srcEntityCode) { this.srcEntityCode = srcEntityCode; }
+        public String getTgtEntityCode() { return tgtEntityCode; }
+        public void setTgtEntityCode(String tgtEntityCode) { this.tgtEntityCode = tgtEntityCode; }
     }
 }

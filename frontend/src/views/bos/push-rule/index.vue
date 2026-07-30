@@ -175,9 +175,9 @@
                     >
                       <el-option
                         v-for="f in grp.options"
-                        :key="f.value"
+                        :key="f.entity_code + '_' + f.value"
                         :label="fieldLabel(f)"
-                        :value="f.value"
+                        :value="f.entity_code + '.' + f.value"
                       />
                     </el-option-group>
                   </el-select>
@@ -199,17 +199,31 @@
                     >
                       <el-option
                         v-for="f in grp.options"
-                        :key="f.value"
+                        :key="f.entity_code + '_' + f.value"
                         :label="fieldLabel(f)"
-                        :value="f.value"
+                        :value="f.entity_code + '.' + f.value"
                       />
                     </el-option-group>
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="主表映射" width="90" align="center">
+              <el-table-column width="110" align="center">
+                <template #header>
+                  <el-tooltip content="主表=源主表字段→目标主表字段（如合同日期）；子表=源子表行字段→目标子表行字段（如物料数量）；孙表=源孙表行字段→目标孙表行字段（如规格段）。选择源字段后自动推断。" placement="top">
+                    <span style="cursor:help">映射层级 <el-icon style="vertical-align:middle"><QuestionFilled /></el-icon></span>
+                  </el-tooltip>
+                </template>
                 <template #default="{ row }">
-                  <el-switch v-model="row.is_main" />
+                  <el-select
+                    v-model="row.level"
+                    size="small"
+                    style="width: 90px"
+                    @change="(val: string) => row.is_main = val === 'main'"
+                  >
+                    <el-option label="主表" value="main" />
+                    <el-option label="子表" value="sub" />
+                    <el-option label="孙表" value="grandchild" />
+                  </el-select>
                 </template>
               </el-table-column>
               <el-table-column label="转换表达式" min-width="160">
@@ -346,9 +360,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, Check, Right, Top, Bottom, MagicStick } from '@element-plus/icons-vue'
+import { Plus, Delete, Check, Right, Top, Bottom, MagicStick, QuestionFilled } from '@element-plus/icons-vue'
 import ExpressionEditor from '@/components/ExpressionEditor/index.vue'
 import { pushRuleApi } from '@/api/state'
 import { boApi, entityApi } from '@/api/bo'
@@ -438,14 +452,20 @@ const form = reactive<PushRule>(emptyForm())
 function flattenFields(entities: FormEntity[]): FieldOption[] {
   const result: FieldOption[] = []
   for (const e of entities || []) {
+    // 优先用 entity_level（更可靠：0=主/1=子/2=孙），fallback 用 entity_type
+    let entityType: string
+    if (e.entity_level === 0) entityType = 'main'
+    else if (e.entity_level === 2) entityType = 'grandchild'
+    else if (e.entity_level === 1) entityType = 'sub'
+    else entityType = e.entity_type || 'sub'
     for (const f of e.fields || []) {
       result.push({
         value: f.field_code,
         label: f.field_name || f.field_code,
         entity_code: e.entity_code || '',
         entity_name: e.entity_name || '',
-        entity_type: e.entity_type || 'sub',
-        is_main: e.entity_type === 'main'
+        entity_type: entityType,
+        is_main: entityType === 'main'
       })
     }
   }
@@ -488,26 +508,51 @@ async function onTgtBoChange(boCode: string) {
   mappings.value = []
 }
 
-/** 自动带出字段：源字段与目标字段同名匹配，命中则勾选；未命中也列出但不勾选 */
+/** 自动带出字段：源字段与目标字段同名匹配，命中则勾选；未命中也列出但不勾选。
+ *  同名字段去重：优先级 main > sub > grandchild，同名只保留一条。 */
 function onAutoMap() {
   if (!srcFieldOptions.value.length) {
     ElMessage.warning('源业务对象无可带出字段')
     return
   }
   const tgtMap = new Map(tgtFieldOptions.value.map(o => [o.value, o]))
+  // 按 entity_type 优先级排序：main(0) > sub(1) > grandchild(2)
+  const priority: Record<string, number> = { main: 0, sub: 1, grandchild: 2 }
+  const sorted = [...srcFieldOptions.value].sort((a, b) =>
+    (priority[a.entity_type] ?? 3) - (priority[b.entity_type] ?? 3)
+  )
+  const seen = new Set<string>()
   const result: PushFieldMapping[] = []
-  for (const sf of srcFieldOptions.value) {
+  for (const sf of sorted) {
+    if (seen.has(sf.value)) continue  // 同名字段已保留更高优先级的，跳过
+    seen.add(sf.value)
     const matched = tgtMap.get(sf.value)
+    const level = inferLevel(sf.entity_type)
     result.push({
-      src_field: sf.value,
-      target_field: matched ? matched.value : '',
-      is_main: sf.is_main,
+      src_field: sf.entity_code + '.' + sf.value,
+      target_field: matched ? (matched.entity_code + '.' + matched.value) : '',
+      is_main: level === 'main',
+      level,
       transform_expr: '',
-      checked: !!matched  // 同名命中才勾选
+      checked: !!matched
     })
   }
   mappings.value = result
   ElMessage.success(`已带出 ${result.length} 条映射，其中 ${result.filter(r => r.checked).length} 条同名命中`)
+}
+
+/** 从 entity_code.field_code 格式中提取 field_code */
+function stripEntityPrefix(val: string): string {
+  if (!val) return val
+  const idx = val.indexOf('.')
+  return idx >= 0 ? val.substring(idx + 1) : val
+}
+
+/** 从 entity_type 推断映射层级 */
+function inferLevel(entityType: string): 'main' | 'sub' | 'grandchild' {
+  if (entityType === 'main') return 'main'
+  if (entityType === 'grandchild') return 'grandchild'
+  return 'sub'
 }
 
 function onAddMapping() {
@@ -515,21 +560,24 @@ function onAddMapping() {
     src_field: '',
     target_field: '',
     is_main: false,
+    level: 'sub',
     transform_expr: '',
     checked: true
   })
 }
 
 function onSrcFieldChange(row: PushFieldMapping) {
-  // 选择源字段后，自动按 entity_type 推断 is_main
-  const sf = srcFieldOptions.value.find(o => o.value === row.src_field)
+  // row.src_field 格式为 entity_code.field_code
+  const sf = srcFieldOptions.value.find(o => o.entity_code + '.' + o.value === row.src_field)
   if (sf) {
-    row.is_main = sf.is_main
+    const level = inferLevel(sf.entity_type)
+    row.level = level
+    row.is_main = level === 'main'
     // 若目标字段为空且同名目标字段存在，自动填充
     if (!row.target_field) {
-      const matched = tgtFieldOptions.value.find(o => o.value === row.src_field)
+      const matched = tgtFieldOptions.value.find(o => o.value === sf.value)
       if (matched) {
-        row.target_field = matched.value
+        row.target_field = matched.entity_code + '.' + matched.value
         row.checked = true
       }
     }
@@ -564,29 +612,61 @@ function parseMappings(json: string): PushFieldMapping[] {
   if (!json) return []
   try {
     const arr = JSON.parse(json)
-    return (Array.isArray(arr) ? arr : []).map((m: any) => ({
-      src_field: m.src_field || '',
-      target_field: m.target_field || '',
-      is_main: !!m.is_main,
-      transform_expr: m.transform_expr || '',
-      // 兼容历史数据：无 checked 字段默认为已勾选（即已配置的映射视为启用）
-      checked: m.checked !== undefined ? !!m.checked : true
-    }))
+    return (Array.isArray(arr) ? arr : []).map((m: any) => {
+      const level = m.level || (m.is_main ? 'main' : 'sub')
+      return {
+        src_field: m.src_field || '',
+        target_field: m.target_field || '',
+        is_main: level === 'main',
+        level,
+        src_entity_code: m.src_entity_code || '',
+        tgt_entity_code: m.tgt_entity_code || '',
+        transform_expr: m.transform_expr || '',
+        checked: m.checked !== undefined ? !!m.checked : true
+      }
+    })
   } catch {
     return []
   }
 }
 
-/** 序列化 mappings（仅勾选的）为 field_mapping_json 字符串 */
+/** 加载规则后，将 mappings 中的 raw field_code 升级为 entity_code.field_code 全值，
+ *  用 src_entity_code/tgt_entity_code 精确匹配，消除同名字段歧义。 */
+watch([srcFieldOptions, tgtFieldOptions], () => {
+  mappings.value.forEach(m => {
+    if (m.src_field && !m.src_field.includes('.')) {
+      // 优先用 src_entity_code 精确匹配
+      const opt = m.src_entity_code
+        ? srcFieldOptions.value.find(o => o.entity_code === m.src_entity_code && o.value === m.src_field)
+        : srcFieldOptions.value.find(o => o.value === m.src_field)
+      if (opt) m.src_field = opt.entity_code + '.' + opt.value
+    }
+    if (m.target_field && !m.target_field.includes('.')) {
+      const opt = m.tgt_entity_code
+        ? tgtFieldOptions.value.find(o => o.entity_code === m.tgt_entity_code && o.value === m.target_field)
+        : tgtFieldOptions.value.find(o => o.value === m.target_field)
+      if (opt) m.target_field = opt.entity_code + '.' + opt.value
+    }
+  })
+}, { immediate: true })
+
+/** 序列化 mappings（仅勾选的）为 field_mapping_json 字符串。
+ *  保留 src_entity_code/tgt_entity_code 以消除同名字段在不同层级表间的歧义。 */
 function serializeMappings(): string {
   const arr = mappings.value
     .filter(m => m.checked && m.src_field && m.target_field)
-    .map(m => ({
-      src_field: m.src_field,
-      target_field: m.target_field,
-      is_main: m.is_main,
-      transform_expr: m.transform_expr || null
-    }))
+    .map(m => {
+      const srcIdx = m.src_field.indexOf('.')
+      const tgtIdx = m.target_field.indexOf('.')
+      return {
+        src_field: stripEntityPrefix(m.src_field),
+        target_field: stripEntityPrefix(m.target_field),
+        src_entity_code: srcIdx >= 0 ? m.src_field.substring(0, srcIdx) : '',
+        tgt_entity_code: tgtIdx >= 0 ? m.target_field.substring(0, tgtIdx) : '',
+        level: m.level || (m.is_main ? 'main' : 'sub'),
+        transform_expr: m.transform_expr || null
+      }
+    })
   return JSON.stringify(arr)
 }
 

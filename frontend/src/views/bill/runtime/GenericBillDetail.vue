@@ -128,6 +128,8 @@ const layoutVersion = ref(0)
 
 // 下推对话框
 const pushVisible = ref(false)
+// 下推元信息（从 pushFrom 加载，保存时用于创建关联 + 回写）
+const pushMeta = ref<any>(null)
 
 const mode = computed<'view' | 'edit' | 'add'>(() => {
   if (isNew.value) return 'add'
@@ -166,20 +168,23 @@ function stateTagType(code: number): 'info' | 'primary' | 'warning' | 'success' 
 function flattenBillData(raw: any): Record<string, any> {
   const data: Record<string, any> = { ...(raw?.main || {}) }
   const subs = raw?.subs || {}
+  // 实体层级判断：优先用 entity_level（更可靠），fallback 用 entity_type
+  const isSub = (e: any) => e.entity_level != null ? e.entity_level === 1 : e.entity_type === 'sub'
+  const isGrandchild = (e: any) => e.entity_level != null ? e.entity_level === 2 : e.entity_type === 'grandchild'
   // 子表数据扁平化
-  entities.value.filter(e => e.entity_type === 'sub').forEach(sub => {
+  entities.value.filter(isSub).forEach(sub => {
     data[sub.entity_code] = subs[sub.entity_code] || []
   })
   // 孙表数据分配到对应的子表行中（MasterDetailEditor 期望嵌套结构 parentRow[gc_entity_code]）
   // 后端返回扁平列表 subs[gc_entity_code]，需按 link_field 分组挂到子表行上
-  entities.value.filter(e => e.entity_type === 'grandchild').forEach(gc => {
+  entities.value.filter(isGrandchild).forEach(gc => {
     const gcRows: any[] = subs[gc.entity_code] || []
     const gcLink = gc.link_field
     const parentCode = gc.parent_entity_code
     const subRows: any[] = data[parentCode] || []
     subRows.forEach((subRow: any) => {
       subRow[gc.entity_code] = gcRows.filter((gcRow: any) =>
-        String(subRow.id) === String(gcRow[gcLink])
+        String(subRow.id || subRow.src_line_id) === String(gcRow[gcLink])
       )
     })
   })
@@ -293,6 +298,65 @@ async function loadMeta() {
 }
 
 async function loadDetail() {
+  // 下推转换：从 pushFrom 参数调用 convert API，加载转换后的目标单数据
+  const pushFrom = route.query.pushFrom
+  if (isNew.value && pushFrom) {
+    const pushFromId = route.query.pushFromId as string
+    const pushRule = route.query.pushRule as string
+    const pushLineIds = route.query.pushLineIds ? String(route.query.pushLineIds).split(',') : undefined
+    try {
+      const raw = await billApi.convert(String(pushFrom), {
+        src_bill_id: pushFromId,
+        rule_code: pushRule,
+        line_ids: pushLineIds
+      })
+      const flattened = flattenBillData(raw || {})
+      Object.keys(formData).forEach(k => delete formData[k])
+      Object.assign(formData, flattened)
+      // 清空主表 id 和编码，作为新单据
+      formData.id = ''
+      formData.code = ''
+      // 清空审计/流程字段
+      formData.auditor = ''
+      formData.audit_by = ''
+      formData.audit_time = ''
+      formData.create_by = ''
+      formData.create_time = ''
+      // 重置单据状态为暂存
+      formData.pact_state = 0
+      formData.is_closed = 0
+      formData.is_cancel = 0
+      // 清空子表行的 id 和 link_field（作为新行），同时清空嵌套的孙表行
+      const isSubEntity = (e: any) => e.entity_level != null ? e.entity_level === 1 : e.entity_type === 'sub'
+      const isGcEntity = (e: any) => e.entity_level != null ? e.entity_level === 2 : e.entity_type === 'grandchild'
+      entities.value.filter(isSubEntity).forEach(sub => {
+        const linkField = sub.link_field
+        ;(formData[sub.entity_code] || []).forEach((row: any) => {
+          row.id = ''
+          row._tempId = Date.now() + Math.random()
+          if (linkField) row[linkField] = ''
+          // 清空嵌套的孙表行 id 和 link_field
+          entities.value.filter(e => isGcEntity(e) && e.parent_entity_code === sub.entity_code).forEach(gc => {
+            const gcLink = gc.link_field
+            ;(row[gc.entity_code] || []).forEach((gcRow: any) => {
+              gcRow.id = ''
+              gcRow._tempId = Date.now() + Math.random()
+              if (gcLink) gcRow[gcLink] = ''
+            })
+          })
+        })
+      })
+      // 保存下推元信息（供保存时创建关联 + 回写）
+      pushMeta.value = raw?._push_meta || null
+      if (pushMeta.value) {
+        ElMessage.success('已加载下推数据，请确认后保存')
+      }
+    } catch {
+      ElMessage.error('加载下推数据失败')
+      initNewForm()
+    }
+    return
+  }
   // 复制：从 copyFrom 参数加载源单据数据，清空 id/code 等字段作为新单据
   const copyFrom = route.query.copyFrom
   if (isNew.value && copyFrom) {
