@@ -146,9 +146,17 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch } from 'vue'
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor'
+import * as monaco from 'monaco-editor'
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import { entityApi } from '@/api/bo'
 import type { FormField } from '@/types/bo'
+
+// 使用本地 monaco-editor 包，避免从 CDN 加载失败导致"加载中"永久卡住
+;(window as any).MonacoEnvironment = {
+  getWorker: () => new editorWorker()
+}
+loader.config({ monaco })
 
 const props = withDefaults(
   defineProps<{

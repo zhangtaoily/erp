@@ -32,7 +32,7 @@ public abstract class AbstractWritebackService {
      *
      * @param srcBoCode 源单据业务对象编码（下游单据）
      * @param srcBillId 源单据ID
-     * @param operation 触发操作（audit审核/cancel撤销）
+     * @param operation 触发操作（save/delete/cancel/audit/revoke）
      * @param exprCtx   表达式上下文（持有源单据字段值）
      * @return 反写执行结果
      */
@@ -45,7 +45,7 @@ public abstract class AbstractWritebackService {
             return result;
         }
         for (MetaWritebackRule rule : rules) {
-            executeOneRule(rule, srcBillId, exprCtx, result);
+            executeOneRule(rule, srcBillId, operation, exprCtx, result);
         }
         result.setSuccess(result.getErrors().isEmpty());
         return result;
@@ -55,12 +55,13 @@ public abstract class AbstractWritebackService {
      * 执行单条反写规则（按 exec_mode 分发）。
      * <p>子类可覆盖以调整 SYNC/ASYNC 路由逻辑。</p>
      */
-    protected void executeOneRule(MetaWritebackRule rule, Long srcBillId, ExprContext exprCtx, WritebackResult result) {
+    protected void executeOneRule(MetaWritebackRule rule, Long srcBillId, String operation,
+                                   ExprContext exprCtx, WritebackResult result) {
         WritebackExecMode mode = resolveExecMode(rule);
         // 清空当前线程告警收集器，准备收集本次 doWriteback 期间的告警
         WARNINGS_HOLDER.get().clear();
         try {
-            doWriteback(rule, srcBillId, exprCtx);
+            doWriteback(rule, srcBillId, operation, exprCtx);
             // 收集 doWriteback 期间产生的告警（如超限 WARN）到 result
             List<String> warnings = WARNINGS_HOLDER.get();
             if (!warnings.isEmpty()) {
@@ -120,10 +121,11 @@ public abstract class AbstractWritebackService {
     /**
      * 加载反写规则列表（子类实现）。
      *
-     * <p>约定：查询 {@code meta_writeback_rule} where src_bill_type=? and trigger_op=? and is_enabled=1</p>
+     * <p>约定：查询 {@code meta_writeback_rule} where src_bill_type=? and FIND_IN_SET(?, trigger_op) > 0 and is_enabled=1</p>
+     * <p>trigger_op 为逗号分隔多选（如 "save,delete,cancel"），支持一个规则匹配多种操作。</p>
      *
      * @param srcBoCode 源单据业务对象编码
-     * @param operation 触发操作（audit/cancel）
+     * @param operation 触发操作（save/delete/cancel/audit/revoke）
      * @return 反写规则列表
      */
     protected abstract List<MetaWritebackRule> loadRules(String srcBoCode, String operation);
@@ -136,16 +138,17 @@ public abstract class AbstractWritebackService {
      *   <li>加载 meta_writeback_field（规则的字段映射）</li>
      *   <li>用 ExprEvaluator 从 exprCtx 取源单据字段值</li>
      *   <li>查目标单据当前值（SELECT target_field FROM target_table WHERE id=?）</li>
-     *   <li>按 mode 计算：ADD/SUBTRACT/COVER</li>
+     *   <li>按 mode + operation 计算：正向操作(save/audit)用 compute，反向操作(delete/cancel/revoke)用 revert</li>
      *   <li>超限检查：over_limit_expr + policy（BLOCK/WARN/ALLOW）</li>
      *   <li>UPDATE target_table SET target_field=? WHERE id=?</li>
      * </ol>
      *
      * @param rule      反写规则
      * @param srcBillId 源单据ID
+     * @param operation 触发操作（save/delete/cancel/audit/revoke），决定正向 compute 还是反向 revert
      * @param exprCtx   表达式上下文
      */
-    protected abstract void doWriteback(MetaWritebackRule rule, Long srcBillId, ExprContext exprCtx);
+    protected abstract void doWriteback(MetaWritebackRule rule, Long srcBillId, String operation, ExprContext exprCtx);
 
     /**
      * 超限 BLOCK 信号异常（继承 ServiceException，对齐任务规范"抛 ServiceException"）。

@@ -4,7 +4,7 @@
     <div class="page-header panel-card">
       <div class="header-left">
         <span class="header-title">反写规则配置</span>
-        <el-tag size="small" type="info" effect="plain">下游审核/取消 → 上游反写</el-tag>
+        <el-tag size="small" type="info" effect="plain">下游操作 → 上游反写</el-tag>
       </div>
       <div class="header-right">
         <el-button size="small" :icon="Refresh" @click="loadRules">刷新</el-button>
@@ -19,7 +19,7 @@
       :closable="false"
       show-icon
     >
-      反写规则支持下游单据审核/取消时反写上游单据字段。支持累加(add)/扣减(subtract)/覆盖(cover)三模式，block/warn/allow 超限控制。
+      反写规则支持下游单据保存/删除/取消/审核/撤销等操作触发反写上游单据字段（触发操作可多选）。模式说明：保存/审核为正向（compute），删除/取消/撤销为反向（自动 revert 还回）。例如 subtract 模式：保存时扣减、删除/取消时自动累加还回。
     </el-alert>
 
     <!-- 主体 -->
@@ -61,8 +61,14 @@
                 <el-tag size="small" :type="overTag(r.over_control)" effect="light">
                   {{ overLabel(r.over_control) }}
                 </el-tag>
-                <el-tag size="small" :type="r.trigger_op === 'audit' ? 'success' : 'warning'" effect="plain">
-                  {{ r.trigger_op === 'audit' ? '审核' : '取消' }}
+                <el-tag
+                  v-for="op in triggerOpArray(r.trigger_op)"
+                  :key="op"
+                  size="small"
+                  :type="op === 'audit' ? 'success' : 'warning'"
+                  effect="plain"
+                >
+                  {{ triggerOpLabel(op) }}
                 </el-tag>
               </div>
             </div>
@@ -109,12 +115,17 @@
                     <BoPicker v-model="current.target_bill_type" @change="onTargetBillChange" />
                   </el-form-item>
                 </el-col>
-                <el-col :span="8">
+                <el-col :span="16">
                   <el-form-item label="触发操作">
-                    <el-radio-group v-model="current.trigger_op">
-                      <el-radio value="audit">审核</el-radio>
-                      <el-radio value="cancel">取消</el-radio>
-                    </el-radio-group>
+                    <el-checkbox-group v-model="current.trigger_op">
+                      <el-checkbox
+                        v-for="o in TRIGGER_OP_OPTIONS"
+                        :key="o.value"
+                        :value="o.value"
+                      >
+                        {{ o.label }}
+                      </el-checkbox>
+                    </el-checkbox-group>
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
@@ -127,6 +138,7 @@
                         :value="o.value"
                       />
                     </el-select>
+                    <div class="field-tip">正向(保存/审核){{ modeHint(current.writeback_mode, false) }}；反向(删除/取消/撤销){{ modeHint(current.writeback_mode, true) }}</div>
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
@@ -156,6 +168,39 @@
                     <el-input v-model="current.target_link_field" placeholder="上游单据行字段，如 id" />
                   </el-form-item>
                 </el-col>
+                <!-- aggregate 模式专用配置 -->
+                <template v-if="current.writeback_mode === 'aggregate'">
+                  <el-col :span="12">
+                    <el-form-item label="下游子表名">
+                      <el-input v-model="current.src_table" placeholder="如 sal_cont_goods（为空时用源单类型）" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="上游子表名">
+                      <el-input v-model="current.target_table" placeholder="如 sal_int_cont_goods（为空时用目标单类型）" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="24">
+                    <el-form-item label="状态过滤">
+                      <el-input v-model="current.status_filter" placeholder="如 m.pact_state NOT IN (0)（配置了下游主表时用 m. 前缀）" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="下游主表名">
+                      <el-input v-model="current.src_main_table" placeholder="如 sal_cont（pact_state在主表时配置）" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="下游子表外键">
+                      <el-input v-model="current.src_main_fk" placeholder="如 sal_cont_id（子表→主表外键）" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="24">
+                    <el-form-item label="上游子表外键">
+                      <el-input v-model="current.target_main_fk" placeholder="如 sal_int_cont_id（配置后子表反写完自动汇总到主表）" />
+                    </el-form-item>
+                  </el-col>
+                </template>
               </el-row>
             </el-form>
 
@@ -175,6 +220,11 @@
                 <el-table-column label="上游字段 target_field" width="160">
                   <template #default="{ row }">
                     <el-input v-model="row.target_field" size="small" placeholder="如 out_qty" />
+                  </template>
+                </el-table-column>
+                <el-table-column v-if="current.writeback_mode === 'aggregate'" label="基准字段 base_field" width="160">
+                  <template #default="{ row }">
+                    <el-input v-model="row.base_field" size="small" placeholder="如 order_qty" />
                   </template>
                 </el-table-column>
                 <el-table-column label="反写表达式 writeback_expr" min-width="320">
@@ -246,7 +296,7 @@ import { Plus, Check, Delete, Refresh, Right } from '@element-plus/icons-vue'
 import BoPicker from '@/components/BoPicker/index.vue'
 import ExpressionEditor from '@/components/ExpressionEditor/index.vue'
 import { writebackApi } from '@/api/rule'
-import { WRITEBACK_MODE_OPTIONS, OVER_CONTROL_OPTIONS } from '@/utils/enum'
+import { WRITEBACK_MODE_OPTIONS, OVER_CONTROL_OPTIONS, TRIGGER_OP_OPTIONS } from '@/utils/enum'
 import type { WritebackRule, WritebackField, WritebackMode, OverControl } from '@/types/bo'
 
 const rules = ref<WritebackRule[]>([])
@@ -272,11 +322,47 @@ function overTag(o: OverControl): 'danger' | 'warning' | 'success' {
   return 'success'
 }
 
+/** 将 trigger_op（数组或逗号字符串）统一转为数组，供列表展示 */
+function triggerOpArray(raw: string[] | string | undefined): string[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw
+  return raw.split(',').map(s => s.trim()).filter(Boolean)
+}
+
+/** 单个触发操作的中文标签 */
+function triggerOpLabel(op: string): string {
+  return TRIGGER_OP_OPTIONS.find(o => o.value === op)?.label || op
+}
+
+/** 反写模式方向提示：正向 compute / 反向 revert 的行为描述 */
+function modeHint(mode: string, reverse: boolean): string {
+  if (mode === 'add') {
+    return reverse ? '扣减（还回）' : '累加'
+  }
+  if (mode === 'subtract') {
+    return reverse ? '累加（还回）' : '扣减'
+  }
+  if (mode === 'cover') {
+    return reverse ? '不变' : '覆盖'
+  }
+  if (mode === 'aggregate') {
+    return '重算 base - SUM(关联下游)'
+  }
+  return ''
+}
+
 async function loadRules() {
   loading.value = true
   try {
     const res = await writebackApi.list()
-    rules.value = res || []
+    // 后端 trigger_op 为逗号分隔字符串，前端转为数组供 checkbox-group 使用
+    // cascade/is_enabled 后端为 0/1，前端转为 boolean 供 el-switch 使用
+    rules.value = (res || []).map(r => ({
+      ...r,
+      trigger_op: triggerOpArray(r.trigger_op as any),
+      cascade: !!r.cascade,
+      is_enabled: !!r.is_enabled
+    }))
     selectedId.value = rules.value.length ? rules.value[0].id : ''
   } catch {
     rules.value = []
@@ -297,12 +383,18 @@ function onAdd() {
     rule_name: '',
     src_bill_type: '',
     target_bill_type: '',
-    trigger_op: 'audit',
+    trigger_op: ['save'],
     writeback_mode: 'add',
     over_control: 'block',
     cascade: false,
     src_link_field: '',
     target_link_field: '',
+    src_table: '',
+    target_table: '',
+    status_filter: '',
+    src_main_table: '',
+    src_main_fk: '',
+    target_main_fk: '',
     fields: [],
     over_expr: '',
     condition_expr: '',
@@ -329,6 +421,7 @@ function onAddField() {
     rule_id: current.value.id,
     src_field: '',
     target_field: '',
+    base_field: '',
     writeback_expr: ''
   }
   current.value.fields.push(field)
@@ -349,11 +442,38 @@ async function onSave() {
     ElMessage.warning('请填写规则编码和名称')
     return
   }
+  if (!current.value.trigger_op || current.value.trigger_op.length === 0) {
+    ElMessage.warning('请选择触发操作')
+    return
+  }
   try {
-    const payload: Partial<WritebackRule> = { ...current.value }
-    if (current.value.id.startsWith('new-')) {
+    const isNew = current.value.id.startsWith('new-')
+    // 构建 payload：清除前端临时 ID（"new-..." / "new-field-..."），避免后端 Long 反序列化失败
+    // trigger_op 数组转逗号分隔字符串（后端 varchar 存储）
+    const payload: Partial<WritebackRule> = {
+      ...current.value,
+      trigger_op: current.value.trigger_op.join(',') as any,
+      cascade: current.value.cascade ? 1 : 0 as any,
+      is_enabled: current.value.is_enabled ? 1 : 0 as any,
+      fields: current.value.fields.map(f => {
+        const cleaned: any = { ...f }
+        if (typeof cleaned.id === 'string' && cleaned.id.startsWith('new-')) {
+          delete cleaned.id
+        }
+        if (typeof cleaned.rule_id === 'string' && cleaned.rule_id.startsWith('new-')) {
+          delete cleaned.rule_id
+        }
+        return cleaned
+      })
+    }
+    if (isNew) {
+      delete (payload as any).id
       const created = await writebackApi.create(payload)
-      Object.assign(current.value, created)
+      Object.assign(current.value, created, {
+        trigger_op: triggerOpArray((created as any).trigger_op),
+        cascade: !!(created as any).cascade,
+        is_enabled: !!(created as any).is_enabled
+      })
       ElMessage.success('新增成功')
     } else {
       await writebackApi.update(current.value.id, payload)
@@ -573,5 +693,11 @@ onMounted(loadRules)
   padding: 10px 12px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
+}
+.field-tip {
+  font-size: 11px;
+  color: #909399;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 </style>

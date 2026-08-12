@@ -1,9 +1,12 @@
 package com.eerp.meta.writeback.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.eerp.common.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.List;
 
 /**
  * 反写规则定义（下游反写上游执行量）
@@ -25,7 +28,7 @@ public class MetaWritebackRule extends BaseEntity {
     /** 上游目标单类型（如 sal_order） */
     private String targetBillType;
 
-    /** 触发操作：audit审核/cancel撤销 */
+    /** 触发操作（逗号分隔多选：save/delete/cancel/audit/revoke） */
     private String triggerOp;
 
     /** 源单关联字段（下游单据行字段，如 src_order_goods_id） */
@@ -34,8 +37,26 @@ public class MetaWritebackRule extends BaseEntity {
     /** 目标单关联字段（上游单据行字段，如 id） */
     private String targetLinkField;
 
-    /** 反写模式：add累加/subtract扣减/cover覆盖 */
+    /** 反写模式：add累加/subtract扣减/cover覆盖/aggregate聚合重算 */
     private String writebackMode;
+
+    /** 下游子表名（aggregate模式用，如 sal_contract_goods）；为空时用 src_bill_type */
+    private String srcTable;
+
+    /** 上游子表名（aggregate模式用，如 sal_int_cont_goods）；为空时用 target_bill_type */
+    private String targetTable;
+
+    /** 下游记录状态过滤（aggregate模式用，如 pact_state NOT IN (0,3)） */
+    private String statusFilter;
+
+    /** 下游主表名（aggregate模式JOIN用，如 sal_cont，pact_state在主表时需配置） */
+    private String srcMainTable;
+
+    /** 下游子表→主表外键（如 sal_cont_id） */
+    private String srcMainFk;
+
+    /** 上游子表→主表外键（如 sal_int_cont_id，配置后自动汇总到主表） */
+    private String targetMainFk;
 
     /** 超限控制：block阻断/warn预警放行/allow允许 */
     private String overControl;
@@ -49,7 +70,8 @@ public class MetaWritebackRule extends BaseEntity {
     /** 反写条件（满足才反写） */
     private String conditionExpr;
 
-    /** 是否级联反写上级：0否 1是 */
+    /** 是否级联反写上级：0否 1是（cascade 为 MySQL 保留字，需反引号转义） */
+    @TableField("`cascade`")
     private Integer cascade;
 
     /** 启用状态：0停用 1启用 */
@@ -57,4 +79,8 @@ public class MetaWritebackRule extends BaseEntity {
 
     /** 备注 */
     private String remark;
+
+    /** 字段映射列表（非数据库字段，仅用于 API 传输） */
+    @TableField(exist = false)
+    private List<MetaWritebackField> fields;
 }

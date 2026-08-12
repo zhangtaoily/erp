@@ -123,7 +123,8 @@ export const TRIGGER_EVENT_OPTIONS = [
 export const WRITEBACK_MODE_OPTIONS = [
   { value: 'add', label: '累加' },
   { value: 'subtract', label: '扣减' },
-  { value: 'cover', label: '覆盖' }
+  { value: 'cover', label: '覆盖' },
+  { value: 'aggregate', label: '聚合重算' }
 ]
 
 // 超限控制（PRD 08.2.6）
@@ -131,6 +132,15 @@ export const OVER_CONTROL_OPTIONS = [
   { value: 'block', label: '阻断' },
   { value: 'warn', label: '预警放行' },
   { value: 'allow', label: '允许' }
+]
+
+// 反写触发操作（多选，逗号分隔存储）
+export const TRIGGER_OP_OPTIONS = [
+  { value: 'save', label: '保存' },
+  { value: 'delete', label: '删除' },
+  { value: 'cancel', label: '取消' },
+  { value: 'audit', label: '审核' },
+  { value: 'revoke', label: '撤销' }
 ]
 
 // 段类型（PRD 06.1.6）

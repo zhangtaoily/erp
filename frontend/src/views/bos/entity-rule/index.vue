@@ -374,8 +374,22 @@ async function onSave() {
     }
   }
   try {
-    const payload: Partial<EntityRule> = { ...current.value, bo_code: boCode.value }
+    const payload: Partial<EntityRule> = {
+      ...current.value,
+      bo_code: boCode.value,
+      items: current.value.items.map(item => {
+        const cleaned: any = { ...item }
+        if (typeof cleaned.id === 'string' && cleaned.id.startsWith('new-')) {
+          delete cleaned.id
+        }
+        if (typeof cleaned.rule_id === 'string' && cleaned.rule_id.startsWith('new-')) {
+          delete cleaned.rule_id
+        }
+        return cleaned
+      })
+    }
     if (current.value.id.startsWith('new-')) {
+      delete (payload as any).id
       const created = await entityRuleApi.create(payload)
       Object.assign(current.value, created)
       ElMessage.success('新增成功')
@@ -428,8 +442,22 @@ async function onSaveAll() {
       continue
     }
     try {
-      const payload: Partial<EntityRule> = { ...r, bo_code: boCode.value }
+      const payload: Partial<EntityRule> = {
+        ...r,
+        bo_code: boCode.value,
+        items: r.items.map(item => {
+          const cleaned: any = { ...item }
+          if (typeof cleaned.id === 'string' && cleaned.id.startsWith('new-')) {
+            delete cleaned.id
+          }
+          if (typeof cleaned.rule_id === 'string' && cleaned.rule_id.startsWith('new-')) {
+            delete cleaned.rule_id
+          }
+          return cleaned
+        })
+      }
       if (r.id.startsWith('new-')) {
+        delete (payload as any).id
         const created = await entityRuleApi.create(payload)
         Object.assign(r, created)
         okCount++

@@ -303,12 +303,18 @@ export interface WritebackRule {
   rule_name: string
   src_bill_type: string    // 下游单据（触发反写）
   target_bill_type: string // 上游单据（被反写）
-  trigger_op: 'audit' | 'cancel'
-  writeback_mode: WritebackMode  // add/subtract/cover
+  trigger_op: string[]  // 触发操作（多选：save/delete/cancel/audit/revoke等）
+  writeback_mode: WritebackMode  // add/subtract/cover/aggregate
   over_control: OverControl      // block/warn/allow
   cascade: boolean                // 是否级联反写
   src_link_field: string         // 源单关联字段（下游单据行字段，如 src_order_goods_id）
   target_link_field: string      // 目标单关联字段（上游单据行字段，如 id）
+  src_table?: string             // 下游子表名（aggregate模式用，如 sal_contract_goods）
+  target_table?: string          // 上游子表名（aggregate模式用，如 sal_int_cont_goods）
+  status_filter?: string         // 下游记录状态过滤（aggregate模式用，如 m.pact_state NOT IN (0,3)）
+  src_main_table?: string        // 下游主表名（aggregate模式JOIN用，如 sal_cont）
+  src_main_fk?: string           // 下游子表→主表外键（如 sal_cont_id）
+  target_main_fk?: string        // 上游子表→主表外键（如 sal_int_cont_id，配置后自动汇总到主表）
   fields: WritebackField[]
   over_expr?: string             // 超限校验表达式
   condition_expr?: string        // 反写条件
@@ -320,6 +326,7 @@ export interface WritebackField {
   rule_id: string
   src_field: string       // 下游单据字段
   target_field: string    // 上游单据字段
+  base_field?: string     // 基准字段（aggregate模式用，上游的基准字段如 order_qty）
   writeback_expr: string  // 反写表达式
 }
 
@@ -536,7 +543,7 @@ export type PluginEvent =
 export type RuleType = 'validate' | 'calc' | 'linkage' | 'available'
 export type TriggerEvent =
   | 'OnBeforeSave' | 'OnAfterSave' | 'OnBeforeSubmit' | 'OnBeforeAudit' | 'OnFieldValueChange'
-export type WritebackMode = 'add' | 'subtract' | 'cover'
+export type WritebackMode = 'add' | 'subtract' | 'cover' | 'aggregate'
 export type OverControl = 'block' | 'warn' | 'allow'
 export type SegmentType = 'prefix' | 'date' | 'serial' | 'fixed' | 'variable'
 export type ResetType = 'none' | 'year' | 'month' | 'org_year'

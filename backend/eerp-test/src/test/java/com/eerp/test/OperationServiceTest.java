@@ -429,7 +429,7 @@ class OperationServiceTest {
 
         assertTrue(result.isSuccess(), "删除应成功");
         verify(billDataAccessor).deleteBill(BO_CODE, BILL_ID);
-        // 删除无状态机校验、无反写
+        // 删除无状态机校验
         verify(stateMachineEngine, org.mockito.Mockito.never())
                 .execute(anyString(), any(), anyString(), any());
     }

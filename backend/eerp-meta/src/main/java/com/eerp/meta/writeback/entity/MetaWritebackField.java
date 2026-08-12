@@ -28,6 +28,9 @@ public class MetaWritebackField extends BaseEntity {
     /** 上游字段（如 out_qty） */
     private String targetField;
 
+    /** 基准字段（aggregate模式用，上游的基准字段如 order_qty） */
+    private String baseField;
+
     /** 反写表达式（如 target_field = target_field + src_field） */
     private String writebackExpr;
 

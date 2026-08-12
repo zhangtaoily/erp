@@ -61,7 +61,7 @@ import java.util.Map;
  *     4. beginOperationTransaction — 事务内前置
  *     → 主流程落库（save/stateChange/delete）
  *     5. endOperationTransaction   — 事务内后置
- *     → 反写规则（SYNC 模式，needWriteback=true 时）
+ *     → 反写规则（SYNC 模式，trigger_op 多选匹配时）
  *     → 操作日志
  *   [事务后]
  *     6. afterExecuteOperationTransaction — 事务后通知（异常仅记日志）
@@ -160,7 +160,7 @@ public abstract class AbstractOperationService {
             return preResult;
         }
 
-        // === 事务内：实体规则 + 阶段 4-5 + 主流程落库 + 操作日志 ===
+        // === 事务内：实体规则 + 阶段 4-5 + 主流程落库 + 反写 + 操作日志 ===
         final ExprContext exprCtx = buildExprContext(ctx, billData);
         final Long[] billIdHolder = new Long[1];
         try {
@@ -182,6 +182,13 @@ public abstract class AbstractOperationService {
                 // 阶段 5：endOperationTransaction
                 PluginExecutorResult r5 = pluginManager.fire(boCode, EVENT_END_TX, pluginCtx);
                 checkPluginBlock(r5);
+
+                // 反写规则（SYNC 模式事务内执行，失败抛异常回滚）
+                WritebackResult wbResult = writebackService.executeWriteback(
+                        boCode, billId, ctx.getOperation(), exprCtx);
+                if (wbResult != null && !wbResult.isSuccess()) {
+                    throw new ServiceException("WB_FAIL", "反写执行失败");
+                }
 
                 // 操作日志
                 recordOpLog(boCode, billId, readBillCode(boCode, billId),
@@ -275,12 +282,11 @@ public abstract class AbstractOperationService {
                 checkPluginBlock(r5);
 
                 // 反写规则（SYNC 模式事务内执行，失败抛异常回滚）
-                if (Boolean.TRUE.equals(extras.get("needWriteback"))) {
-                    WritebackResult wbResult = writebackService.executeWriteback(boCode, billId, operation, exprCtx);
-                    if (wbResult != null && !wbResult.isSuccess()) {
-                        // SYNC 模式失败已由 AbstractWritebackService 抛异常；此处兜底
-                        throw new ServiceException("WB_FAIL", "反写执行失败");
-                    }
+                // trigger_op 多选配置决定哪些操作触发反写，loadRules 无匹配规则时为 no-op
+                WritebackResult wbResult = writebackService.executeWriteback(boCode, billId, operation, exprCtx);
+                if (wbResult != null && !wbResult.isSuccess()) {
+                    // SYNC 模式失败已由 AbstractWritebackService 抛异常；此处兜底
+                    throw new ServiceException("WB_FAIL", "反写执行失败");
                 }
 
                 // 操作日志
@@ -316,8 +322,8 @@ public abstract class AbstractOperationService {
     /**
      * 执行删除操作，固化 6 阶段流水线。
      *
-     * <p>事务边界：阶段 1-3 事务外 → 阶段 4-5 + 删除 + 操作日志 事务内 → 阶段 6 事务后。
-     * 删除无状态机校验、无实体规则、无反写、无工作流推送。</p>
+     * <p>事务边界：阶段 1-3 事务外 → 阶段 4-5 + 删除 + 反写 + 操作日志 事务内 → 阶段 6 事务后。
+     * 删除无状态机校验、无实体规则、无工作流推送。</p>
      */
     protected OperationResult executeDelete(OperationContext ctx) {
         String boCode = ctx.getBoCode();
@@ -340,7 +346,10 @@ public abstract class AbstractOperationService {
         Integer fromState = readState(boCode, billId, stateField);
         String billCode = readBillCode(boCode, billId);
 
-        // === 事务内：阶段 4-5 + 删除 + 操作日志 ===
+        // 构建表达式上下文（基于删除前的 billData，供反写使用）
+        final ExprContext exprCtx = buildExprContext(ctx, billData);
+
+        // === 事务内：阶段 4-5 + 删除 + 反写 + 操作日志 ===
         try {
             runInTransaction(() -> {
                 // 阶段 4：beginOperationTransaction
@@ -353,6 +362,13 @@ public abstract class AbstractOperationService {
                 // 阶段 5：endOperationTransaction
                 PluginExecutorResult r5 = pluginManager.fire(boCode, EVENT_END_TX, pluginCtx);
                 checkPluginBlock(r5);
+
+                // 反写规则（SYNC 模式事务内执行，失败抛异常回滚）
+                WritebackResult wbResult = writebackService.executeWriteback(
+                        boCode, billId, "delete", exprCtx);
+                if (wbResult != null && !wbResult.isSuccess()) {
+                    throw new ServiceException("WB_FAIL", "反写执行失败");
+                }
 
                 // 操作日志
                 recordOpLog(boCode, billId, billCode, "delete", fromState, null,
