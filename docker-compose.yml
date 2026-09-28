@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: eerp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eerp
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_general_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/schema/00-平台元数据表.sql:/docker-entrypoint-initdb.d/01-schema-meta.sql:ro
+      - ./database/schema/01-基础资料表.sql:/docker-entrypoint-initdb.d/02-schema-base.sql:ro
+      - ./database/schema/10-系统管理表.sql:/docker-entrypoint-initdb.d/03-schema-sys.sql:ro
+      - ./database/schema/10-消息预警表.sql:/docker-entrypoint-initdb.d/04-schema-msg.sql:ro
+      - ./database/seed/V1.0.0__seed_admin.sql:/docker-entrypoint-initdb.d/05-seed-admin.sql:ro
+      - ./database/seed/V1.0.1__seed_meta.sql:/docker-entrypoint-initdb.d/06-seed-meta.sql:ro
+      - ./database/seed/V1.0.2__seed_dict.sql:/docker-entrypoint-initdb.d/07-seed-dict.sql:ro
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+
+  redis:
+    image: redis:7-alpine
+    container_name: eerp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mysql-data:
+  redis-data:
