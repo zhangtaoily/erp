@@ -215,6 +215,6 @@ eerp.storage.local.base-path: ./data/attachments
 
 ## 联系与交流
 
-微信扫码添加好友，欢迎交流企业 AI Agent / 数字分身方向的话题：
+微信扫码添加好友，欢迎交流企业ERP、 AI Agent / 数字分身方向的话题：
 
 <img src="./img/c5fbcf54-cd88-406a-96c6-aed80f19a874.png" alt="微信联系方式" width="220" />
