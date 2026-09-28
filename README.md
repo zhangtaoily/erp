@@ -211,3 +211,10 @@ eerp.storage.local.base-path: ./data/attachments
 - 主键策略：`ASSIGN_ID`（雪花算法）
 - 逻辑删除字段统一为 `deleted`（0 未删 / 1 已删）
 - 单据状态：0-暂存, 1-已创建, 2-已提交, 3-已审核, 4-已驳回
+
+
+## 联系与交流
+
+微信扫码添加好友，欢迎交流企业 AI Agent / 数字分身方向的话题：
+
+<img src="./img/c5fbcf54-cd88-406a-96c6-aed80f19a874.png" alt="微信联系方式" width="220" />
